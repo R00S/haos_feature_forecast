@@ -1,5 +1,6 @@
 {
   "name": "HAOS Feature Forecast",
+  "content_in_root": false,
   "render_readme": true,
   "domains": ["haos_feature_forecast"],
   "homeassistant": "2025.10.0",
