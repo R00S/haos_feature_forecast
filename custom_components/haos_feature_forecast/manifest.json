@@ -1,7 +1,7 @@
 {
   "domain": "haos_feature_forecast",
   "name": "HAOS Feature Forecast",
-  "version": "1.0.15",
+  "version": "1.0.16",
   "documentation": "https://github.com/R00S/haos_feature_forecast",
   "requirements": [],
   "codeowners": ["@R00S"],
