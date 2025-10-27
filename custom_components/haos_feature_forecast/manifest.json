@@ -1,0 +1,9 @@
+{
+  "domain": "haos_feature_forecast",
+  "name": "HAOS Feature Forecast",
+  "version": "1.0.0",
+  "documentation": "https://github.com/R00S/haos_feature_forecast",
+  "requirements": [],
+  "codeowners": ["@R00S"],
+  "iot_class": "cloud_polling"
+}
