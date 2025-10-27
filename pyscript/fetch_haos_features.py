@@ -1,1 +1,1 @@
-# Placeholder for full Version A-rev1 script
+# Placeholder — full Version A-rev1 script goes here.
