@@ -1,3 +1,4 @@
+# Updated 2025-10-27 21:37:38 CET (CET)
 # /config/pyscript/fetch_haos_features.py
 # Stable “Version A-rev1” – model fallback, min features, correct indentation.
 

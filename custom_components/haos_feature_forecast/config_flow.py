@@ -1,3 +1,4 @@
+# Updated 2025-10-27 21:37:38 CET (CET)
 """Config flow for HAOS Feature Forecast integration."""
 
 from __future__ import annotations
