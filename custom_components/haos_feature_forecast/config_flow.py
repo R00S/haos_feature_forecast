@@ -1,4 +1,4 @@
-# Updated 2025-10-27 21:55:12 CET (CET)
+# Updated 2025-10-27 22:59:19 CET (CET)
 """Config flow for HAOS Feature Forecast integration."""
 
 from __future__ import annotations
@@ -9,7 +9,7 @@ from .const import DOMAIN
 
 
 class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
-    """Config flow for HAOS Feature Forecast."""
+    """Handle a config flow for HAOS Feature Forecast."""
 
     VERSION = 1
 
@@ -19,5 +19,4 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             await self._async_set_unique_id("haos_feature_forecast_singleton")
             self._abort_if_unique_id_configured()
             return self.async_create_entry(title="HAOS Feature Forecast", data={})
-        # Empty schema; translations supply title/desc
         return self.async_show_form(step_id="user", data_schema=vol.Schema({}))

@@ -1,7 +1,8 @@
 {
   "name": "HAOS Feature Forecast",
-  "content_in_root": false,
-  "domains": ["sensor"],
-  "iot_class": "cloud_polling",
-  "render_readme": true
+  "render_readme": true,
+  "domains": ["haos_feature_forecast"],
+  "homeassistant": "2025.10.0",
+  "iot_class": "local_polling",
+  "country": "SE"
 }
