@@ -1,4 +1,4 @@
-# Updated 2025-10-27 21:45:48 CET (CET)
+# Updated 2025-10-27 21:55:12 CET (CET)
 """HAOS Feature Forecast integration initializer."""
 
 from __future__ import annotations
@@ -14,7 +14,6 @@ from .const import DOMAIN
 
 PLATFORMS: Final = [Platform.SENSOR]
 
-# Any Pyscript helpers you want distributed
 PYSCRIPT_FILES: Final[list[str]] = [
     "fetch_haos_features.py",
 ]

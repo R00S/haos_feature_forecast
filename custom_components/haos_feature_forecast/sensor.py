@@ -1,4 +1,4 @@
-# Updated 2025-10-27 21:45:48 CET (CET)
+# Updated 2025-10-27 21:55:12 CET (CET)
 """Dummy sensor to register the HAOS Feature Forecast integration."""
 
 from homeassistant.components.sensor import SensorEntity

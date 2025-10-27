@@ -1,0 +1,14 @@
+{
+  "title": "HAOS Feature Forecast",
+  "config": {
+    "step": {
+      "user": {
+        "title": "HAOS Feature Forecast",
+        "description": "Set up the HAOS Feature Forecast integration."
+      }
+    },
+    "abort": {
+      "already_configured": "This integration is already configured."
+    }
+  }
+}
