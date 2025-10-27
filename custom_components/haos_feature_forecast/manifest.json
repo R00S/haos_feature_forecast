@@ -8,7 +8,7 @@
   "codeowners": [
     "@R00S"
   ],
-  "integration_type": "hub",
+  "integration_type": "entity",
   "iot_class": "local_polling",
   "config_flow": true,
   "requirements": []
