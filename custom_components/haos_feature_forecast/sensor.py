@@ -1,17 +1,22 @@
-from homeassistant.helpers.entity import Entity
+"""Dummy sensor to register the HAOS Feature Forecast integration."""
 
-async def async_setup_entry(hass, entry, async_add_entities):
-    async_add_entities([HaosForecastSensor()])
+from homeassistant.components.sensor import SensorEntity
 
-class HaosForecastSensor(Entity):
-    @property
-    def name(self):
-        return "HAOS Feature Forecast"
+async def async_setup_platform(hass, config, add_entities, discovery_info=None):
+    """Legacy setup for manual YAML config (unused)."""
+    add_entities([HAOSForecastStatusSensor()])
+
+async def async_setup_entry(hass, entry, add_entities):
+    """Setup sensor from config entry."""
+    add_entities([HAOSForecastStatusSensor()])
+
+class HAOSForecastStatusSensor(SensorEntity):
+    """Simple entity showing integration state."""
+
+    _attr_name = "HAOS Feature Forecast"
+    _attr_unique_id = "haos_feature_forecast_status"
+    _attr_icon = "mdi:cloud-search"
 
     @property
     def state(self):
-        return "ready"
-
-    @property
-    def extra_state_attributes(self):
-        return {"note": "Integration shell — data comes from Pyscript fetch_haos_features"}
+        return "active"

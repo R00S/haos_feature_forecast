@@ -3,31 +3,37 @@
 import os
 import shutil
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers import discovery
 import homeassistant.util.dt as dt_util
 
 DOMAIN = "haos_feature_forecast"
+PLATFORMS = ["sensor"]
 
-# Any Pyscript helpers you want distributed
 PYSCRIPT_FILES = [
     "fetch_haos_features.py",
     # "parse_reddit_signals.py",
     # "analyze_github_prs.py",
 ]
 
-async def async_setup_entry(hass: HomeAssistant, entry):
-    """Set up the HAOS Feature Forecast integration."""
+async def async_setup(hass: HomeAssistant, config):
+    """Run on every HA start, even without config entry."""
     await _ensure_pyscript_files(hass)
     return True
 
-async def async_setup(hass: HomeAssistant, config):
-    """Legacy YAML setup."""
+async def async_setup_entry(hass: HomeAssistant, entry):
+    """Set up HAOS Feature Forecast from the UI (config flow)."""
     await _ensure_pyscript_files(hass)
+    for platform in PLATFORMS:
+        hass.async_create_task(discovery.async_load_platform(hass, platform, DOMAIN, {}, entry))
+    return True
+
+async def async_unload_entry(hass: HomeAssistant, entry):
+    """Unload a config entry."""
     return True
 
 async def _ensure_pyscript_files(hass: HomeAssistant):
-    """Copy all declared Pyscript files into /config/pyscript."""
+    """Copy declared Pyscript files into /config/pyscript."""
     pyscript_dir = os.path.join(hass.config.path(), "pyscript")
-
     if not os.path.exists(pyscript_dir):
         os.makedirs(pyscript_dir)
 
@@ -50,12 +56,6 @@ async def _ensure_pyscript_files(hass: HomeAssistant):
 %H:%M:%S)}",
                     title="HAOS Feature Forecast",
                 )
-            else:
-                hass.components.persistent_notification.create(
-                    f"{filename} already up to date.",
-                    title="HAOS Feature Forecast",
-                )
-
         except Exception as e:
             hass.components.persistent_notification.create(
                 f"Failed to copy {filename}: {e}",
