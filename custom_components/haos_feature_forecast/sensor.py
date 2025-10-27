@@ -1,18 +1,18 @@
-# Updated 2025-10-27 21:37:38 CET (CET)
+# Updated 2025-10-27 21:45:48 CET (CET)
 """Dummy sensor to register the HAOS Feature Forecast integration."""
 
 from homeassistant.components.sensor import SensorEntity
+from homeassistant.config_entries import ConfigEntry
+from homeassistant.core import HomeAssistant
 
-async def async_setup_platform(hass, config, add_entities, discovery_info=None):
-    """Legacy setup for manual YAML config (unused)."""
-    add_entities([HAOSForecastStatusSensor()])
 
-async def async_setup_entry(hass, entry, add_entities):
+async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_entities):
     """Setup sensor from config entry."""
-    add_entities([HAOSForecastStatusSensor()])
+    async_add_entities([HAOSForecastStatusSensor()])
+
 
 class HAOSForecastStatusSensor(SensorEntity):
-    """Simple entity showing integration state."""
+    """Simple sensor showing integration state."""
 
     _attr_name = "HAOS Feature Forecast"
     _attr_unique_id = "haos_feature_forecast_status"
