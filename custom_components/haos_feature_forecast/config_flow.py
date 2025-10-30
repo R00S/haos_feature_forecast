@@ -1,5 +1,5 @@
-# Updated 2025-10-30 11:05:00 CET (CET)
-"""Config flow for HAOS Feature Forecast (HAOS 2025.10 compliant)."""
+# Updated 2025-10-30 11:18:00 CET (CET)
+"""Config flow for HAOS Feature Forecast (safe HAOS 2025.10 pattern)."""
 
 from __future__ import annotations
 import voluptuous as vol
@@ -8,9 +8,8 @@ from homeassistant.data_entry_flow import FlowResult
 from .const import DOMAIN
 
 
-@config_entries.HANDLERS.register(DOMAIN)
-class ConfigFlow(config_entries.ConfigFlow):
-    """Handle the config flow for HAOS Feature Forecast."""
+class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
+    """Handle a config flow for HAOS Feature Forecast."""
 
     VERSION = 1
 
@@ -28,11 +27,6 @@ class ConfigFlow(config_entries.ConfigFlow):
         )
 
 
-async def async_get_options_flow(config_entry):
-    """Return the options flow handler."""
-    return OptionsFlowHandler(config_entry)
-
-
 class OptionsFlowHandler(config_entries.OptionsFlow):
     """Handle options for HAOS Feature Forecast."""
 
@@ -48,3 +42,8 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
             step_id="init",
             data_schema=vol.Schema({}),
         )
+
+
+async def async_get_options_flow(config_entry):
+    """Return the options flow handler."""
+    return OptionsFlowHandler(config_entry)
