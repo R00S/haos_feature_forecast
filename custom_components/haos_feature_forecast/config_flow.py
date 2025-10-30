@@ -1,5 +1,5 @@
-# Updated 2025-10-30 11:18:00 CET (CET)
-"""Config flow for HAOS Feature Forecast (safe HAOS 2025.10 pattern)."""
+# Updated 2025-10-30 11:50:00 CET (CET)
+"""Config flow for HAOS Feature Forecast (HAOS 2025.10 compliant)."""
 
 from __future__ import annotations
 import voluptuous as vol
@@ -14,7 +14,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     VERSION = 1
 
     async def async_step_user(self, user_input: dict | None = None) -> FlowResult:
-        """Handle the initial step of the flow."""
+        """Handle the initial step."""
         if user_input is not None:
             await self.async_set_unique_id("haos_feature_forecast_singleton")
             self._abort_if_unique_id_configured()
@@ -38,10 +38,7 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
         """Manage options."""
         if user_input is not None:
             return self.async_create_entry(title="", data=user_input)
-        return self.async_show_form(
-            step_id="init",
-            data_schema=vol.Schema({}),
-        )
+        return self.async_show_form(step_id="init", data_schema=vol.Schema({}))
 
 
 async def async_get_options_flow(config_entry):

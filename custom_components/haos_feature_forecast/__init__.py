@@ -1,70 +1,53 @@
-# Updated 2025-10-30 10:10:00 CET (CET)
-"""HAOS Feature Forecast integration — exposes native HA service."""
+# Updated 2025-10-30 11:50:00 CET (CET)
+"""HAOS Feature Forecast integration initializer."""
 
-import asyncio
 import os
-import sys
-import importlib
-import homeassistant.util.dt as dt_util
-from homeassistant.const import Platform
-from homeassistant.core import HomeAssistant, ServiceCall
+from homeassistant.core import HomeAssistant
 from homeassistant.config_entries import ConfigEntry
+from homeassistant.const import Platform
+from homeassistant.util import dt as dt_util
+from .const import DOMAIN
 
-DOMAIN = "haos_feature_forecast"
 PLATFORMS = [Platform.SENSOR]
 
 
-async def async_setup(hass: HomeAssistant, config):
-    """Legacy YAML setup."""
-    await _register_service(hass)
+async def async_setup(hass: HomeAssistant, config: dict):
+    """Legacy YAML setup (normally unused)."""
+    _register_service(hass)
     return True
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
-    """UI config flow setup."""
-    await _register_service(hass)
+    """Set up integration from Config Flow."""
+    _register_service(hass)
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
-    await _notify(hass, f"{DOMAIN} service registered at {dt_util.now().strftime('%H:%M:%S')}")
+    await _notify(hass, f"HAOS Feature Forecast loaded at {dt_util.now().strftime('%Y-%m-%d %H:%M:%S')}")
     return True
 
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry):
-    """Allow GUI removal."""
-    hass.services.async_remove(DOMAIN, "update_forecast")
-    hass.data.pop(DOMAIN, None)
+    """Unload the integration cleanly."""
     return await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
 
 
-async def _register_service(hass: HomeAssistant):
-    """Expose haos_feature_forecast.update_forecast service."""
-    async def handle_service(call: ServiceCall):
-        msg = f"Manual forecast update triggered at {dt_util.now().strftime('%H:%M:%S')}"
-        await _notify(hass, msg)
+def _register_service(hass: HomeAssistant):
+    """Register the pyscript-style update service."""
 
-        # Try importing your logic dynamically
+    async def handle_service(call):
+        await _notify(hass, f"Forecast fetch simulated at {dt_util.now().strftime('%Y-%m-%d %H:%M:%S')}")
         try:
-            module_name = f"custom_components.{DOMAIN}.fetch_haos_features"
-            importlib.invalidate_caches()
-            module = importlib.import_module(module_name)
-            if hasattr(module, "main"):
-                await asyncio.create_task(module.main(hass))
-                await _notify(hass, "Forecast update completed.")
-            else:
-                await _notify(hass, f"No 'main(hass)' found in {module_name}", error=True)
+            from . import fetch_haos_features
+            await fetch_haos_features.main(hass)
         except Exception as e:
-            await _notify(hass, f"Error running forecast: {e}", error=True)
+            await _notify(hass, f"Error running fetch_haos_features: {e}")
 
     hass.services.async_register(DOMAIN, "update_forecast", handle_service)
 
 
-async def _notify(hass: HomeAssistant, message: str, error: bool = False):
-    """Send a persistent notification."""
-    title = "HAOS Feature Forecast Error" if error else "HAOS Feature Forecast"
-    try:
-        await hass.services.async_call(
-            "persistent_notification",
-            "create",
-            {"title": title, "message": message},
-        )
-    except Exception as e:
-        print(f"[HAOS Feature Forecast] Notification failed: {e}")
+async def _notify(hass: HomeAssistant, message: str):
+    """Show a persistent notification."""
+    await hass.services.async_call(
+        "persistent_notification",
+        "create",
+        {"title": "HAOS Feature Forecast", "message": message},
+    )
