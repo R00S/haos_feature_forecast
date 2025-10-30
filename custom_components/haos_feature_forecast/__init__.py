@@ -1,5 +1,5 @@
-# Updated 2025-10-30 08:25:00 CET (CET)
-"""HAOS Feature Forecast integration initializer with self-healing config-entry cleanup."""
+# Updated 2025-10-30 08:45:00 CET (CET)
+"""HAOS Feature Forecast integration initializer with Pyscript reload."""
 
 import os
 import sys
@@ -19,23 +19,20 @@ async def async_setup(hass: HomeAssistant, config):
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
-    """Set up the integration, cleaning broken entries if needed."""
+    """Set up the integration and ensure Pyscript reloads."""
     await _ensure_pyscript_path(hass)
-
-    # --- Self-healing check: remove duplicate/broken entries ---
-    entries = hass.config_entries.async_entries(DOMAIN)
-    if len(entries) > 1:
-        await _notify(
-            hass,
-            f"Detected {len(entries)} entries for {DOMAIN}. Cleaning duplicates …",
-        )
-        for e in entries[1:]:
-            await hass.config_entries.async_remove(e.entry_id)
 
     await _notify(
         hass,
         f"Pyscript path registered for {DOMAIN} at {dt_util.now().strftime('%Y-%m-%d %H:%M:%S')}",
     )
+
+    # ✅ Trigger Pyscript reload so new path is scanned
+    try:
+        await hass.services.async_call("pyscript", "reload")
+        await _notify(hass, "Triggered Pyscript reload after path registration.")
+    except Exception as e:
+        await _notify(hass, f"Could not reload Pyscript: {e}", error=True)
 
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     return True
@@ -47,7 +44,7 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry):
 
 
 async def _ensure_pyscript_path(hass: HomeAssistant):
-    """Make this integration visible to Pyscript without copying files."""
+    """Add this integration folder to Pyscript search paths."""
     integ_path = os.path.join(hass.config.path(), "custom_components", DOMAIN)
     if integ_path not in sys.path:
         sys.path.insert(0, integ_path)
