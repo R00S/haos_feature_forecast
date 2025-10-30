@@ -1,5 +1,5 @@
-# Updated 2025-10-30 06:40:44 CET (CET)
-"""Config flow for HAOS Feature Forecast (wizard-working version)."""
+# Updated 2025-10-30 07:00:00 CET (CET)
+"""Config flow for HAOS Feature Forecast (fixed for HA 2025.10+)."""
 
 from __future__ import annotations
 import voluptuous as vol
@@ -16,7 +16,8 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     async def async_step_user(self, user_input: dict | None = None) -> FlowResult:
         """Handle the initial step."""
         if user_input is not None:
-            await self._async_set_unique_id("haos_feature_forecast_singleton")
+            # Updated for HA 2025.10+: _async_set_unique_id → async_set_unique_id
+            await self.async_set_unique_id("haos_feature_forecast_singleton")
             self._abort_if_unique_id_configured()
             return self.async_create_entry(title="HAOS Feature Forecast", data={})
 
