@@ -1,4 +1,4 @@
-# Updated 2025-10-27 23:36:22 CET (CET)
+# Updated 2025-10-30 06:23:21 CET (CET)
 """HAOS Feature Forecast main module."""
 
 import datetime
@@ -7,7 +7,7 @@ import yaml
 import os
 
 async def _read_key():
-    """Read GitHub token (example of your working method)."""
+    """Read GitHub token using aiofiles + yaml.safe_load as per your standard."""
     secrets_path = "/config/secrets.yaml"
     if not os.path.exists(secrets_path):
         return None
@@ -16,13 +16,11 @@ async def _read_key():
         return data.get("github_token")
 
 async def get_summary():
-    """Return summarized forecast data for sensor.py."""
+    """Return summarized forecast data for sensor.py (stub)."""
     token = await _read_key()
     now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    if token:
-        summary = "Forecast system ready (GitHub token loaded)"
-    else:
-        summary = "Forecast system ready (no token found)"
+    summary = ("Forecast system ready (GitHub token loaded)" if token
+               else "Forecast system ready (no token found)")
     return {
         "summary": summary,
         "timestamp": now,

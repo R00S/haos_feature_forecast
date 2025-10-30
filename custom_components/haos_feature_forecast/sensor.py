@@ -1,18 +1,18 @@
-# Updated 2025-10-27 23:36:22 CET (CET)
+# Updated 2025-10-30 06:23:21 CET (CET)
 """Sensor entity for HAOS Feature Forecast."""
 
-import asyncio
 from datetime import timedelta
+import logging
 from homeassistant.components.sensor import SensorEntity
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import (
-    CoordinatorEntity,
-    DataUpdateCoordinator,
-    UpdateFailed,
+    CoordinatorEntity, DataUpdateCoordinator, UpdateFailed
 )
 from .const import DOMAIN
 import fetch_haos_features
+
+_LOGGER = logging.getLogger(__name__)
 
 class HAOSForecastCoordinator(DataUpdateCoordinator):
     """Coordinator to manage fetching forecast data."""
@@ -20,13 +20,12 @@ class HAOSForecastCoordinator(DataUpdateCoordinator):
     def __init__(self, hass: HomeAssistant):
         super().__init__(
             hass,
-            _LOGGER if " _LOGGER" in globals() else None,
+            _LOGGER,
             name=DOMAIN,
             update_interval=timedelta(hours=6),
         )
 
     async def _async_update_data(self):
-        """Fetch data using the internal feature forecast module."""
         try:
             data = await fetch_haos_features.get_summary()
             return data
@@ -52,7 +51,6 @@ class HAOSFeatureForecastSensor(CoordinatorEntity, SensorEntity):
 
     @property
     def state(self):
-        """Return the current forecast summary text or status."""
         data = self.coordinator.data
         if not data:
             return "loading"
@@ -62,7 +60,6 @@ class HAOSFeatureForecastSensor(CoordinatorEntity, SensorEntity):
 
     @property
     def extra_state_attributes(self):
-        """Return full data attributes if available."""
         data = self.coordinator.data
         if isinstance(data, dict):
             return data
