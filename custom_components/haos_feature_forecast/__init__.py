@@ -1,4 +1,4 @@
-# Updated 2025-10-30 07:45:00 CET (CET)
+# Updated 2025-10-30 07:55:00 CET (CET)
 """HAOS Feature Forecast integration initializer."""
 
 import os
@@ -7,7 +7,6 @@ import homeassistant.util.dt as dt_util
 from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.helpers import persistent_notification
 
 DOMAIN = "haos_feature_forecast"
 PLATFORMS = [Platform.SENSOR]
@@ -23,11 +22,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
     """Set up the HAOS Feature Forecast integration (Config Flow)."""
     await _ensure_pyscript_path(hass)
 
-    persistent_notification.create(
+    await _notify(
         hass,
-        f"Pyscript path registered for {DOMAIN} at "
-        f"{dt_util.now().strftime('%Y-%m-%d %H:%M:%S')}",
-        title="HAOS Feature Forecast",
+        f"Pyscript path registered for {DOMAIN} at {dt_util.now().strftime('%Y-%m-%d %H:%M:%S')}",
     )
 
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
@@ -49,14 +46,19 @@ async def _ensure_pyscript_path(hass: HomeAssistant):
         pys_app = hass.data.get("pyscript")
         if pys_app and hasattr(pys_app, "add_path"):
             pys_app.add_path(integ_path)
-            persistent_notification.create(
-                hass,
-                f"Pyscript path added: {integ_path}",
-                title="HAOS Feature Forecast",
-            )
+            await _notify(hass, f"Pyscript path added: {integ_path}")
     except Exception as e:
-        persistent_notification.create(
-            hass,
-            f"Unable to register Pyscript path: {e}",
-            title="HAOS Feature Forecast Error",
+        await _notify(hass, f"Unable to register Pyscript path: {e}", error=True)
+
+
+async def _notify(hass: HomeAssistant, message: str, error: bool = False):
+    """Send a persistent notification safely."""
+    title = "HAOS Feature Forecast Error" if error else "HAOS Feature Forecast"
+    try:
+        await hass.services.async_call(
+            "persistent_notification",
+            "create",
+            {"title": title, "message": message},
         )
+    except Exception as e:
+        print(f"[HAOS Feature Forecast] Notification failed: {e}")
