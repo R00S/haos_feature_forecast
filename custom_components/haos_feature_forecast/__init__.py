@@ -1,5 +1,5 @@
-# Updated 2025-10-30 08:05:00 CET (CET)
-"""HAOS Feature Forecast integration initializer (import-safe)."""
+# Updated 2025-10-30 08:25:00 CET (CET)
+"""HAOS Feature Forecast integration initializer with self-healing config-entry cleanup."""
 
 import os
 import sys
@@ -19,13 +19,22 @@ async def async_setup(hass: HomeAssistant, config):
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
-    """Set up the integration."""
+    """Set up the integration, cleaning broken entries if needed."""
     await _ensure_pyscript_path(hass)
+
+    # --- Self-healing check: remove duplicate/broken entries ---
+    entries = hass.config_entries.async_entries(DOMAIN)
+    if len(entries) > 1:
+        await _notify(
+            hass,
+            f"Detected {len(entries)} entries for {DOMAIN}. Cleaning duplicates …",
+        )
+        for e in entries[1:]:
+            await hass.config_entries.async_remove(e.entry_id)
 
     await _notify(
         hass,
-        f"Pyscript path registered for {DOMAIN} at "
-        f"{dt_util.now().strftime('%Y-%m-%d %H:%M:%S')}",
+        f"Pyscript path registered for {DOMAIN} at {dt_util.now().strftime('%Y-%m-%d %H:%M:%S')}",
     )
 
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
