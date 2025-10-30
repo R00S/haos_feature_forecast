@@ -1,4 +1,4 @@
-# Updated 2025-10-30 06:23:21 CET (CET)
+# Updated 2025-10-30 06:27:51 CET (CET)
 """Baseline ConfigFlow verified on HAOS 2025.10."""
 
 from homeassistant import config_entries

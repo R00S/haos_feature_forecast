@@ -1,4 +1,4 @@
-# Updated 2025-10-30 06:23:21 CET (CET)
+# Updated 2025-10-30 06:27:51 CET (CET)
 """Sensor entity for HAOS Feature Forecast."""
 
 from datetime import timedelta
