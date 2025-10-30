@@ -1,40 +1,60 @@
-# Updated 2025-10-30 06:27:51 CET (CET)
+# Updated 2025-10-30 07:25:00 CET (CET)
 """HAOS Feature Forecast integration initializer."""
 
-import sys
 import os
-from typing import Final
+import sys
+import homeassistant.util.dt as dt_util
 from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
 from homeassistant.config_entries import ConfigEntry
-import homeassistant.util.dt as dt_util
-from .const import DOMAIN
 
-PLATFORMS: Final = [Platform.SENSOR]
+DOMAIN = "haos_feature_forecast"
+PLATFORMS = [Platform.SENSOR]
+
 
 async def async_setup(hass: HomeAssistant, config):
-    """YAML-based setup (rarely used)."""
-    _register_pyscript_path(hass)
+    """Legacy YAML setup (rarely used)."""
+    await _ensure_pyscript_path(hass)
     return True
 
+
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
-    """Set up from the UI (Config Flow)."""
-    _register_pyscript_path(hass)
-    await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
+    """Set up the HAOS Feature Forecast integration (Config Flow)."""
+    await _ensure_pyscript_path(hass)
+
+    # Create a visible persistent notification for debug visibility
     hass.components.persistent_notification.create(
-        "Pyscript path registered for {} at {}".format(
-            DOMAIN, dt_util.now().strftime("%Y-%m-%d %H:%M:%S")
-        ),
+        f"Pyscript path registered for {DOMAIN} at "
+        f"{dt_util.now().strftime('%Y-%m-%d %H:%M:%S')}",
         title="HAOS Feature Forecast",
     )
+
+    await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     return True
+
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry):
     """Unload integration cleanly."""
     return await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
 
-def _register_pyscript_path(hass: HomeAssistant):
-    """Add this integration folder to sys.path for direct imports by Pyscript."""
+
+async def _ensure_pyscript_path(hass: HomeAssistant):
+    """Make this integration visible to Pyscript without copying files."""
     integ_path = os.path.join(hass.config.path(), "custom_components", DOMAIN)
     if integ_path not in sys.path:
         sys.path.insert(0, integ_path)
+
+    # Try to register path with the Pyscript integration if available
+    try:
+        pys_app = hass.data.get("pyscript")
+        if pys_app and hasattr(pys_app, "add_path"):
+            pys_app.add_path(integ_path)
+            hass.components.persistent_notification.create(
+                f"Pyscript path added: {integ_path}",
+                title="HAOS Feature Forecast",
+            )
+    except Exception as e:
+        hass.components.persistent_notification.create(
+            f"Unable to register Pyscript path: {e}",
+            title="HAOS Feature Forecast Error",
+        )
