@@ -1,21 +1,26 @@
-# Updated 2025-10-30 07:05:00 CET (CET)
-"""Minimal ConfigFlow for HAOS Feature Forecast."""
+# Updated 2025-10-30 06:40:44 CET (CET)
+"""Config flow for HAOS Feature Forecast (wizard-working version)."""
 
+from __future__ import annotations
+import voluptuous as vol
 from homeassistant import config_entries
-
-DOMAIN = "haos_feature_forecast"
+from homeassistant.data_entry_flow import FlowResult
+from .const import DOMAIN
 
 
 class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
-    """Handle the HAOS Feature Forecast configuration flow."""
+    """Handle the configuration flow for HAOS Feature Forecast."""
 
     VERSION = 1
 
-    async def async_step_user(self, user_input=None):
-        """Handle the user step."""
+    async def async_step_user(self, user_input: dict | None = None) -> FlowResult:
+        """Handle the initial step."""
         if user_input is not None:
-            await self._async_set_unique_id(DOMAIN)
+            await self._async_set_unique_id("haos_feature_forecast_singleton")
             self._abort_if_unique_id_configured()
             return self.async_create_entry(title="HAOS Feature Forecast", data={})
 
-        return self.async_show_form(step_id="user")
+        return self.async_show_form(
+            step_id="user",
+            data_schema=vol.Schema({}),
+        )
