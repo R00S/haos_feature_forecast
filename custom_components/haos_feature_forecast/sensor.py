@@ -10,7 +10,7 @@ from homeassistant.helpers.update_coordinator import (
     CoordinatorEntity, DataUpdateCoordinator, UpdateFailed
 )
 from .const import DOMAIN
-import fetch_haos_features
+from . import fetch_haos_features
 
 _LOGGER = logging.getLogger(__name__)
 
