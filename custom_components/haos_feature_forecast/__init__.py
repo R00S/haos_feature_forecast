@@ -1,5 +1,5 @@
-# Updated 2025-10-30 07:55:00 CET (CET)
-"""HAOS Feature Forecast integration initializer."""
+# Updated 2025-10-30 08:05:00 CET (CET)
+"""HAOS Feature Forecast integration initializer (import-safe)."""
 
 import os
 import sys
@@ -13,18 +13,19 @@ PLATFORMS = [Platform.SENSOR]
 
 
 async def async_setup(hass: HomeAssistant, config):
-    """Legacy YAML setup (rarely used)."""
+    """Legacy YAML setup."""
     await _ensure_pyscript_path(hass)
     return True
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
-    """Set up the HAOS Feature Forecast integration (Config Flow)."""
+    """Set up the integration."""
     await _ensure_pyscript_path(hass)
 
     await _notify(
         hass,
-        f"Pyscript path registered for {DOMAIN} at {dt_util.now().strftime('%Y-%m-%d %H:%M:%S')}",
+        f"Pyscript path registered for {DOMAIN} at "
+        f"{dt_util.now().strftime('%Y-%m-%d %H:%M:%S')}",
     )
 
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
@@ -52,7 +53,7 @@ async def _ensure_pyscript_path(hass: HomeAssistant):
 
 
 async def _notify(hass: HomeAssistant, message: str, error: bool = False):
-    """Send a persistent notification safely."""
+    """Send a persistent notification through HA's service layer."""
     title = "HAOS Feature Forecast Error" if error else "HAOS Feature Forecast"
     try:
         await hass.services.async_call(
