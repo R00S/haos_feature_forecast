@@ -1,4 +1,4 @@
-# Updated 2025-10-30 07:25:00 CET (CET)
+# Updated 2025-10-30 07:45:00 CET (CET)
 """HAOS Feature Forecast integration initializer."""
 
 import os
@@ -7,6 +7,7 @@ import homeassistant.util.dt as dt_util
 from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
 from homeassistant.config_entries import ConfigEntry
+from homeassistant.helpers import persistent_notification
 
 DOMAIN = "haos_feature_forecast"
 PLATFORMS = [Platform.SENSOR]
@@ -22,8 +23,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
     """Set up the HAOS Feature Forecast integration (Config Flow)."""
     await _ensure_pyscript_path(hass)
 
-    # Create a visible persistent notification for debug visibility
-    hass.components.persistent_notification.create(
+    persistent_notification.create(
+        hass,
         f"Pyscript path registered for {DOMAIN} at "
         f"{dt_util.now().strftime('%Y-%m-%d %H:%M:%S')}",
         title="HAOS Feature Forecast",
@@ -44,17 +45,18 @@ async def _ensure_pyscript_path(hass: HomeAssistant):
     if integ_path not in sys.path:
         sys.path.insert(0, integ_path)
 
-    # Try to register path with the Pyscript integration if available
     try:
         pys_app = hass.data.get("pyscript")
         if pys_app and hasattr(pys_app, "add_path"):
             pys_app.add_path(integ_path)
-            hass.components.persistent_notification.create(
+            persistent_notification.create(
+                hass,
                 f"Pyscript path added: {integ_path}",
                 title="HAOS Feature Forecast",
             )
     except Exception as e:
-        hass.components.persistent_notification.create(
+        persistent_notification.create(
+            hass,
             f"Unable to register Pyscript path: {e}",
             title="HAOS Feature Forecast Error",
         )
