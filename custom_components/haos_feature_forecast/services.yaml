@@ -1,0 +1,3 @@
+update_forecast:
+  name: Update Forecast
+  description: Trigger a manual refresh of predicted HAOS features.
