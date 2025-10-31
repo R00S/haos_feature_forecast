@@ -18,20 +18,34 @@ async def main(hass):
 # --- Async wrapper added by integration ---
 import asyncio
 
+
+
+# --- Async wrapper updated by integration ---
+import asyncio
+import inspect
+import logging
+
+_LOGGER = logging.getLogger(__name__)
+
 async def async_fetch_haos_features(hass):
     """Async wrapper to run forecast update logic."""
     try:
-        # Import existing sync fetch logic if present
         from . import fetch_haos_features as f
         loop = asyncio.get_running_loop()
         if hasattr(f, "main"):
-            await loop.run_in_executor(None, f.main)
+            sig = inspect.signature(f.main)
+            if len(sig.parameters) == 0:
+                await loop.run_in_executor(None, f.main)
+            else:
+                await loop.run_in_executor(None, f.main, hass)
         elif hasattr(f, "fetch_haos_features"):
-            await loop.run_in_executor(None, f.fetch_haos_features)
+            sig = inspect.signature(f.fetch_haos_features)
+            if len(sig.parameters) == 0:
+                await loop.run_in_executor(None, f.fetch_haos_features)
+            else:
+                await loop.run_in_executor(None, f.fetch_haos_features, hass)
         else:
-            _LOGGER = __import__("logging").getLogger(__name__)
             _LOGGER.warning("No fetch entrypoint found in fetch_haos_features.py")
     except Exception as err:
-        _LOGGER = __import__("logging").getLogger(__name__)
         _LOGGER.warning(f"async_fetch_haos_features failed: {err}")
 
