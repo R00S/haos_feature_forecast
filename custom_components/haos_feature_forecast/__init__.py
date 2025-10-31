@@ -2,6 +2,9 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, ServiceCall
 from .const import DOMAIN
 import asyncio
+import logging
+
+_LOGGER = logging.getLogger(__name__)
 
 async def async_setup(hass: HomeAssistant, config: dict) -> bool:
     """Initialize the integration (called before any entry setup)."""
@@ -12,8 +15,9 @@ async def async_setup(hass: HomeAssistant, config: dict) -> bool:
         try:
             from .fetch_haos_features import async_fetch_haos_features
             asyncio.create_task(async_fetch_haos_features(hass))
+            _LOGGER.info("HAOS Feature Forecast: manual update triggered.")
         except Exception as err:
-            hass.logger.warning(f"update_forecast service failed: {err}")
+            _LOGGER.warning(f"update_forecast service failed: {err}")
 
     hass.services.async_register(DOMAIN, "update_forecast", handle_update_forecast)
     return True
