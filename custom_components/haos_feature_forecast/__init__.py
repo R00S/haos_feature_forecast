@@ -17,6 +17,3 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     hass.data[DOMAIN].pop(entry.entry_id, None)
     return True
 
-# Ensure ConfigFlow registration
-from . import config_flow  # noqa: E402
-
