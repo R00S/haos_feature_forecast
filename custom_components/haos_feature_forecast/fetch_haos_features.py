@@ -1,11 +1,41 @@
 
-# --- Sensor update helper restored by integration ---
 import logging
-import datetime
+_LOGGER = logging.getLogger(__name__)
+
+def main(hass=None):
+    """Generate HAOS Feature Forecast text."""
+    try:
+        forecast_text = (
+            "🔮 Forecast update simulated.\n"
+            "Upcoming features likely to appear in next HA release:\n"
+            "• New Energy Dashboard visualizations\n"
+            "• Voice Assist improvements\n"
+            "• Automation editor overhaul"
+        )
+        _LOGGER.info("HAOS Feature Forecast simulated successfully.")
+        # Send persistent notification if HA context available
+        if hass is not None:
+            hass.async_create_task(
+                hass.services.async_call(
+                    "persistent_notification",
+                    "create",
+                    {
+                        "title": "HAOS Feature Forecast",
+                        "message": forecast_text,
+                        "notification_id": "haos_feature_forecast",
+                    },
+                )
+            )
+        return forecast_text
+    except Exception as err:
+        _LOGGER.warning(f"main() forecast generation failed: {err}")
+        return "Forecast generation failed."
+
+
+# --- Async wrapper + helper preserved ---
 import asyncio
 import inspect
-
-_LOGGER = logging.getLogger(__name__)
+import datetime
 
 async def async_publish_forecast(hass, forecast_text: str):
     """Publish forecast text to HA sensor."""
@@ -28,15 +58,15 @@ async def async_fetch_haos_features(hass):
         if hasattr(f, "main"):
             sig = inspect.signature(f.main)
             if len(sig.parameters) == 0:
-                await loop.run_in_executor(None, f.main)
+                forecast_result = await loop.run_in_executor(None, f.main)
             else:
-                await loop.run_in_executor(None, f.main, hass)
+                forecast_result = await loop.run_in_executor(None, f.main, hass)
         elif hasattr(f, "fetch_haos_features"):
             sig = inspect.signature(f.fetch_haos_features)
             if len(sig.parameters) == 0:
-                await loop.run_in_executor(None, f.fetch_haos_features)
+                forecast_result = await loop.run_in_executor(None, f.fetch_haos_features)
             else:
-                await loop.run_in_executor(None, f.fetch_haos_features, hass)
+                forecast_result = await loop.run_in_executor(None, f.fetch_haos_features, hass)
         else:
             forecast_result = "No fetch entrypoint found."
             _LOGGER.warning(forecast_result)
