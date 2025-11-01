@@ -24,9 +24,11 @@ async def async_fetch_haos_features(hass: HomeAssistant):
         hass.data[DOMAIN]["forecast"] = features
         hass.data[DOMAIN]["rendered_html"] = html
 
-        hass.components.persistent_notification.create(
-            "✅ Forecast data simulated and stored successfully.",
-            title="HAOS Feature Forecast",
+        await hass.services.async_call(
+            "persistent_notification",
+            "create",
+            {"title": "HAOS Feature Forecast",
+             "message": "✅ Forecast data simulated and stored successfully."},
         )
         _LOGGER.info("Forecast updated successfully")
 
