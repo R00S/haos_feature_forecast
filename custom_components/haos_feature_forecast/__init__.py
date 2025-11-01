@@ -32,3 +32,4 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     hass.data[DOMAIN].pop(entry.entry_id, None)
     return True
 
+__version__ = '1.0.3'
