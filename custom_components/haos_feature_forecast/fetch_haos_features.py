@@ -1,7 +1,9 @@
+# Updated (CET): Nov 01 18:53 CET
 """Async-safe forecast fetcher for HAOS Feature Forecast (HAOS 2025.10+)."""
 
 import asyncio
 import logging
+from datetime import datetime, timezone, timedelta
 from homeassistant.core import HomeAssistant
 from .const import DOMAIN
 
@@ -18,8 +20,14 @@ async def async_fetch_haos_features(hass: HomeAssistant):
             "Improved Matter Support",
         ]
 
-        html = ("<h4>Upcoming Home Assistant Features</h4><ul>"
-                + "".join(f"<li>{f}</li>" for f in features) + "</ul>")
+        cet = timezone(timedelta(hours=1))
+        ts = datetime.now(cet).strftime("%b %d %H:%M")
+
+        html = (
+            f"<p><b>Last updated:</b> {ts} CET</p>"
+            "<h4>Upcoming Home Assistant Features</h4><ul>"
+            + "".join(f"<li>{f}</li>" for f in features) + "</ul>"
+        )
 
         hass.data.setdefault(DOMAIN, {})
         hass.data[DOMAIN]["forecast"] = features
@@ -39,4 +47,4 @@ async def async_fetch_haos_features(hass: HomeAssistant):
         _LOGGER.info("Forecast updated successfully")
 
     except Exception as e:
-        _LOGGER.exception(f"async_fetch_haos_features failed: {e}")
+        _LOGGER.exception("async_fetch_haos_features failed: %s", e)
