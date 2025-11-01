@@ -1,5 +1,5 @@
-"""Async-safe forecast fetcher with real direct links (HAOS 2025.10 +)."""
-# Timestamp CET: 2025-11-02_002650_CET
+"""Async-safe forecast fetcher with real direct links (HAOS 2025.10+)."""
+# Timestamp CET: 2025-11-02_003204_CET
 
 import asyncio, logging
 from datetime import datetime, timezone, timedelta
@@ -12,7 +12,7 @@ SOURCE_WEIGHTS = {"blog":1.0,"forum":0.9,"reddit":0.8,"github":0.6}
 CONF_ORDER = {"Very likely":3,"Likely":2,"Possible":1}
 
 def _src_badge(src,url):
-  if url: return f"<a href=\"{url}\" target=\"_blank\">{src.title()}</a>"
+  if url: return f"<a href=\\"{url}\\" target=\\"_blank\\">{src.title()}</a>"
   return src.title()
 
 def _rank_key(f):
@@ -47,14 +47,14 @@ async def async_fetch_haos_features(hass:HomeAssistant):
     ver = datetime.now(cet).strftime("%Y.%m")
 
     def _render(title,items):
-      lis = "".join(f"<li>{i[title]} <small>— {i[confidence]} · {_src_badge(i[source],i[url])}</small></li>" for i in items)
+      lis = "".join(f"<li>{i[\\"title\\"]} <small>— {i[\\"confidence\\"]} · {_src_badge(i[\\"source\\"], i[\\"url\\"])}</small></li>" for i in items)
       return f"<h4>{title} ({ver})</h4><ul>{lis}</ul>"
 
     html = f"<p><b>Last updated:</b> {ts} CET</p>" + _render("Upcoming",upcoming) + _render("Next",nxt)
 
     hass.data.setdefault(DOMAIN,{})["rendered_html"] = html
     hass.states.async_set("sensor.haos_feature_forecast_native","ok",{"rendered_html":html})
-    _LOGGER.info("Forecast updated v1.1.4 with real links.")
+    _LOGGER.info("Forecast updated v1.1.5 with quoted keys.")
 
   except Exception as e:
     _LOGGER.exception("async_fetch_haos_features failed: %s", e)
