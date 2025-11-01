@@ -1,4 +1,4 @@
-"""Async-safe forecast fetcher for HAOS Feature Forecast (HAOS 2025.10 +)."""
+"""Async-safe forecast fetcher for HAOS Feature Forecast (HAOS 2025.10+)."""
 
 import asyncio
 import logging
@@ -45,13 +45,8 @@ async def async_fetch_haos_features(hass: HomeAssistant):
             "Forecast generation failed.",
         )
 
+
 def main(hass: HomeAssistant):
-    """Entry called by the service handler; schedule the async task on loop."""
-    try:
-        loop = asyncio.get_event_loop()
-        if loop.is_running():
-            loop.create_task(async_fetch_haos_features(hass))
-        else:
-            loop.run_until_complete(async_fetch_haos_features(hass))
-    except Exception as e:
-        _LOGGER.exception("main() forecast generation failed: %s", e)
+    """Thread-safe entry point."""
+    hass.loop.create_task(async_fetch_haos_features(hass))
+
