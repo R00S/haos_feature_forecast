@@ -1,3 +1,5 @@
+"""Async-safe forecast fetcher (cleaned, HAOS 2025.10 +)."""
+# Timestamp CET: 2025-11-02_00-47-45_CET
 """Async-safe forecast fetcher with quoted keys and safe fallback (HAOS 2025.10+)."""
 # Timestamp CET: 2025-11-02_003727_CET
 
