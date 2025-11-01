@@ -1,78 +1,52 @@
+"""Thread-safe forecast fetcher for HAOS Feature Forecast."""
 
+import asyncio
 import logging
+from homeassistant.core import HomeAssistant
+from .const import DOMAIN
+
 _LOGGER = logging.getLogger(__name__)
 
-def main(hass=None):
-    """Generate HAOS Feature Forecast text."""
+async def async_fetch_haos_features(hass: HomeAssistant):
+    """Fetch upcoming Home Assistant features asynchronously."""
     try:
-        forecast_text = (
-            "🔮 Forecast update simulated.\n"
-            "Upcoming features likely to appear in next HA release:\n"
-            "• New Energy Dashboard visualizations\n"
-            "• Voice Assist improvements\n"
-            "• Automation editor overhaul"
+        await asyncio.sleep(1)
+        features = [
+            "Energy Pie Chart",
+            "Voice Dashboard",
+            "New Automation Editor",
+            "Improved Matter Support",
+        ]
+
+        html = "<h4>Upcoming Home Assistant Features</h4><ul>" + "".join(f"<li>{f}</li>" for f in features) + "</ul>"
+
+        hass.data.setdefault(DOMAIN, {})
+        hass.data[DOMAIN]["forecast"] = features
+        hass.data[DOMAIN]["rendered_html"] = html
+
+        hass.components.persistent_notification.create(
+            "✅ Forecast data simulated and stored successfully.",
+            title="HAOS Feature Forecast",
         )
-        _LOGGER.info("HAOS Feature Forecast simulated successfully.")
-        # Send persistent notification if HA context available
-        if hass is not None:
-            hass.async_create_task(
-                hass.services.async_call(
-                    "persistent_notification",
-                    "create",
-                    {
-                        "title": "HAOS Feature Forecast",
-                        "message": forecast_text,
-                        "notification_id": "haos_feature_forecast",
-                    },
-                )
-            )
-        return forecast_text
-    except Exception as err:
-        _LOGGER.warning(f"main() forecast generation failed: {err}")
-        return "Forecast generation failed."
+        _LOGGER.info("Forecast updated successfully")
 
-
-# --- Async wrapper + helper preserved ---
-import asyncio
-import inspect
-import datetime
-
-async def async_publish_forecast(hass, forecast_text: str):
-    """Publish forecast text to HA sensor."""
-    try:
+    except Exception as e:
+        _LOGGER.exception("async_fetch_haos_features failed: %s", e)
         hass.states.async_set(
             "sensor.haos_feature_forecast_native",
-            forecast_text or "No forecast data",
-            {"last_updated": datetime.datetime.now().isoformat()},
+            "Forecast generation failed.",
         )
-        _LOGGER.info("Forecast sensor updated successfully.")
-    except Exception as err:
-        _LOGGER.warning(f"Failed to update forecast sensor: {err}")
 
-async def async_fetch_haos_features(hass):
-    """Async wrapper to run forecast update logic and publish result."""
+
+def main(hass: HomeAssistant):
+    """Thread-safe entry point for service handler."""
     try:
-        from . import fetch_haos_features as f
-        loop = asyncio.get_running_loop()
-        forecast_result = "Forecast update completed."
-        if hasattr(f, "main"):
-            sig = inspect.signature(f.main)
-            if len(sig.parameters) == 0:
-                forecast_result = await loop.run_in_executor(None, f.main)
-            else:
-                forecast_result = await loop.run_in_executor(None, f.main, hass)
-        elif hasattr(f, "fetch_haos_features"):
-            sig = inspect.signature(f.fetch_haos_features)
-            if len(sig.parameters) == 0:
-                forecast_result = await loop.run_in_executor(None, f.fetch_haos_features)
-            else:
-                forecast_result = await loop.run_in_executor(None, f.fetch_haos_features, hass)
-        else:
-            forecast_result = "No fetch entrypoint found."
-            _LOGGER.warning(forecast_result)
-
-        # Always publish forecast state
-        await async_publish_forecast(hass, forecast_result)
-    except Exception as err:
-        _LOGGER.warning(f"async_fetch_haos_features failed: {err}")
-
+        hass.loop.call_soon_threadsafe(
+            lambda: asyncio.create_task(async_fetch_haos_features(hass))
+        )
+    except Exception as e:
+        _LOGGER.exception("main() forecast generation failed: %s", e)
+        hass.states.async_set(
+            "sensor.haos_feature_forecast_native",
+            "Forecast generation failed.",
+        )
