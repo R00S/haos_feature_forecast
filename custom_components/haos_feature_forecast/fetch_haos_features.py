@@ -3,12 +3,6 @@
 """Async-safe forecast fetcher with quoted keys and safe fallback (HAOS 2025.10+)."""
 # Timestamp CET: 2025-11-02_003727_CET
 
-import asyncio, logging
-from datetime import datetime, timezone, timedelta
-from homeassistant.core import HomeAssistant
-from .const import DOMAIN
-
-_LOGGER = logging.getLogger(__name__)
 
 SOURCE_WEIGHTS = {"blog":1.0,"forum":0.9,"reddit":0.8,"github":0.6}
 CONF_ORDER = {"Very likely":3,"Likely":2,"Possible":1}
@@ -25,12 +19,6 @@ def _rank_key(f):
 async def async_fetch_haos_features(hass: HomeAssistant):
     """Forecast with verified URLs and safe fallback."""
     try:
-import asyncio, logging
-from datetime import datetime, timezone, timedelta
-from homeassistant.core import HomeAssistant
-from .const import DOMAIN
-
-_LOGGER = logging.getLogger(__name__)
 
         await asyncio.sleep(0)
 
