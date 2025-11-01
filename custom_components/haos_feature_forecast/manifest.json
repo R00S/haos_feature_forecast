@@ -1,14 +1,9 @@
 {
   "domain": "haos_feature_forecast",
   "name": "HAOS Feature Forecast",
-  "version": "1.1.0",
-  "documentation": "https://github.com/R00S/haos_feature_forecast",
-  "issue_tracker": "https://github.com/R00S/haos_feature_forecast/issues",
-  "codeowners": [
-    "@R00S"
-  ],
-  "config_flow": true,
+  "version": "1.1.1",
   "integration_type": "integration",
-  "iot_class": "local_polling",
-  "requirements": []
+  "requirements": [],
+  "codeowners": ["@R00S"],
+  "iot_class": "cloud_push"
 }
