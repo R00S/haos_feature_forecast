@@ -1,5 +1,5 @@
 """Async-safe forecast fetcher with real direct links (HAOS 2025.10 +)."""
-# Timestamp CET: 2025-11-02_001004_CET
+# Timestamp CET: 2025-11-02_002650_CET
 
 import asyncio, logging
 from datetime import datetime, timezone, timedelta
