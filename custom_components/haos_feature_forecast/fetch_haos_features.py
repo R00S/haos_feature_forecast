@@ -27,8 +27,10 @@ async def async_fetch_haos_features(hass: HomeAssistant):
         await hass.services.async_call(
             "persistent_notification",
             "create",
-            {"title": "HAOS Feature Forecast",
-             "message": "✅ Forecast data simulated and stored successfully."},
+            {
+                "title": "HAOS Feature Forecast",
+                "message": "✅ Forecast data simulated and stored successfully."
+            },
         )
         _LOGGER.info("Forecast updated successfully")
 
@@ -43,12 +45,6 @@ async def async_fetch_haos_features(hass: HomeAssistant):
 def main(hass: HomeAssistant):
     """Thread-safe entry point for service handler."""
     try:
-        hass.loop.call_soon_threadsafe(
-            lambda: asyncio.create_task(async_fetch_haos_features(hass))
-        )
+        asyncio.run(async_fetch_haos_features(hass))
     except Exception as e:
         _LOGGER.exception("main() forecast generation failed: %s", e)
-        hass.states.async_set(
-            "sensor.haos_feature_forecast_native",
-            "Forecast generation failed.",
-        )
