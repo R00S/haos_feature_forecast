@@ -1,6 +1,5 @@
-"""Async-safe forecast fetcher for HAOS Feature Forecast (HAOS 2025.10 +)."""
-# Timestamp CET:
-2025-11-01_22-20-38_CET
+"""Async-safe forecast fetcher for HAOS Feature Forecast (HAOS 2025.10+)."""
+# Timestamp CET: 2025-11-01_223032_CET
 
 import asyncio
 import logging
@@ -14,6 +13,7 @@ async def async_fetch_haos_features(hass: HomeAssistant):
     """Fetch upcoming + next features asynchronously and expose rendered_html."""
     try:
         await asyncio.sleep(0)
+        # Ensure at least 5 items in upcoming and 3 in next
         upcoming = [
             ("Energy Pie Chart", "Very likely"),
             ("Voice Dashboard", "Likely"),
@@ -61,4 +61,3 @@ async def async_fetch_haos_features(hass: HomeAssistant):
 
     except Exception as e:
         _LOGGER.exception("async_fetch_haos_features failed: %s", e)
-
