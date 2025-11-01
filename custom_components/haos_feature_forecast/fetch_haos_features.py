@@ -23,6 +23,13 @@ def _rank_key(f):
 async def async_fetch_haos_features(hass: HomeAssistant):
     """Forecast with verified URLs and safe fallback."""
     try:
+import asyncio, logging
+from datetime import datetime, timezone, timedelta
+from homeassistant.core import HomeAssistant
+from .const import DOMAIN
+
+_LOGGER = logging.getLogger(__name__)
+
         await asyncio.sleep(0)
 
         upcoming = [
