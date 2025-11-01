@@ -39,8 +39,4 @@ async def async_fetch_haos_features(hass: HomeAssistant):
         _LOGGER.info("Forecast updated successfully")
 
     except Exception as e:
-        _LOGGER.exception("async_fetch_haos_features failed: %s", e)
-        hass.states.async_set(
-            "sensor.haos_feature_forecast_native",
-            "Forecast generation failed.",
-        )
+        _LOGGER.exception(f"async_fetch_haos_features failed: {e}")
