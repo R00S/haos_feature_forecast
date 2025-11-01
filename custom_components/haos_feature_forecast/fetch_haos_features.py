@@ -1,5 +1,5 @@
-# Updated (CET): Nov 01 18:53 CET
-"""Async-safe forecast fetcher for HAOS Feature Forecast (HAOS 2025.10+)."""
+"""Async-safe forecast fetcher for HAOS Feature Forecast (HAOS 2025.10 +).
+Last modified: 2025-11-01_19-12-32_CET (CET)"""
 
 import asyncio
 import logging
@@ -35,16 +35,16 @@ async def async_fetch_haos_features(hass: HomeAssistant):
 
         hass.states.async_set(
             "sensor.haos_feature_forecast_native",
-            "ok",
+            html,
             {"rendered_html": html, "features": features},
         )
 
         await hass.services.async_call(
             "persistent_notification","create",
             {"title": "HAOS Feature Forecast",
-             "message": "✅ Forecast simulated & stored."},
+             "message": f"✅ Forecast update completed at {ts} CET."},
         )
-        _LOGGER.info("Forecast updated successfully")
+        _LOGGER.info("Forecast updated successfully at %s CET", ts)
 
     except Exception as e:
         _LOGGER.exception("async_fetch_haos_features failed: %s", e)
