@@ -1,4 +1,4 @@
-"""Async-safe forecast fetcher for HAOS Feature Forecast (HAOS 2025.10+)."""
+"""Async-safe forecast fetcher for HAOS Feature Forecast (HAOS 2025.10 +)."""
 
 import asyncio
 import logging
@@ -17,29 +17,33 @@ async def async_fetch_haos_features(hass: HomeAssistant):
             "New Automation Editor",
             "Improved Matter Support",
         ]
-        html = "<h4>Upcoming Home Assistant Features</h4><ul>" + "".join(f"<li>{f}</li>" for f in features) + "</ul>"
+
+        html = ("<h4>Upcoming Home Assistant Features</h4><ul>"
+                + "".join(f"<li>{f}</li>" for f in features) + "</ul>")
 
         hass.data.setdefault(DOMAIN, {})
         hass.data[DOMAIN]["forecast"] = features
         hass.data[DOMAIN]["rendered_html"] = html
 
-        # Populate the Lovelace HTML card source:
         hass.states.async_set(
             "sensor.haos_feature_forecast_native",
             "ok",
             {"rendered_html": html, "features": features},
         )
 
-        # Optional UX ping without touching hass.components directly:
         await hass.services.async_call(
             "persistent_notification","create",
-            {"title": "HAOS Feature Forecast","message": "✅ Forecast simulated & stored."},
+            {"title": "HAOS Feature Forecast",
+             "message": "✅ Forecast simulated & stored."},
         )
         _LOGGER.info("Forecast updated successfully")
 
     except Exception as e:
         _LOGGER.exception("async_fetch_haos_features failed: %s", e)
-        hass.states.async_set("sensor.haos_feature_forecast_native","Forecast generation failed.")
+        hass.states.async_set(
+            "sensor.haos_feature_forecast_native",
+            "Forecast generation failed.",
+        )
 
 def main(hass: HomeAssistant):
     """Entry called by the service handler; schedule the async task on loop."""
