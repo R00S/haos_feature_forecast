@@ -44,9 +44,3 @@ async def async_fetch_haos_features(hass: HomeAssistant):
             "sensor.haos_feature_forecast_native",
             "Forecast generation failed.",
         )
-
-
-def main(hass: HomeAssistant):
-    """Thread-safe entry point."""
-    hass.loop.create_task(async_fetch_haos_features(hass))
-
