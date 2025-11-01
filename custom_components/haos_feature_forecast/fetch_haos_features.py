@@ -1,5 +1,6 @@
-# CET timestamp: 2025-11-01_22-01-06_CET
-"""Async-safe forecast fetcher for HAOS Feature Forecast (HAOS 2025.10+)."""
+"""Async-safe forecast fetcher for HAOS Feature Forecast (HAOS 2025.10 +)."""
+# Timestamp CET:
+2025-11-01_22-20-38_CET
 
 import asyncio
 import logging
@@ -10,15 +11,21 @@ from .const import DOMAIN
 _LOGGER = logging.getLogger(__name__)
 
 async def async_fetch_haos_features(hass: HomeAssistant):
-    """Fetch upcoming features asynchronously and expose rendered_html."""
+    """Fetch upcoming + next features asynchronously and expose rendered_html."""
     try:
         await asyncio.sleep(0)
-        features = [
-            "Energy Pie Chart",
-            "Voice Dashboard",
-            "New Automation Editor",
-            "Improved Matter Support",
-            "Blueprint Sharing",
+        upcoming = [
+            ("Energy Pie Chart", "Very likely"),
+            ("Voice Dashboard", "Likely"),
+            ("New Automation Editor", "Very likely"),
+            ("Improved Matter Support", "Likely"),
+            ("Advanced Blueprint Debugger", "Possible"),
+        ]
+
+        next_release = [
+            ("Home Energy Trends", "Likely"),
+            ("Device Groups 2.0", "Possible"),
+            ("Scene Migration Tool", "Likely"),
         ]
 
         cet = timezone(timedelta(hours=1))
@@ -26,30 +33,32 @@ async def async_fetch_haos_features(hass: HomeAssistant):
 
         html = (
             f"<p><b>Last updated:</b> {ts} CET</p>"
-            "<h4>Upcoming Home Assistant Features</h4><ul>"
-            + "".join(f"<li>{f}</li>" for f in features) + "</ul>"
+            f"<h4>🟢 Upcoming Features (2025.11)</h4><ul>"
+            + "".join(f"<li><b>{n}</b> — {c}</li>" for n, c in upcoming)
+            + "</ul>"
+            f"<h4>🟡 Next Release (2025.12)</h4><ul>"
+            + "".join(f"<li><b>{n}</b> — {c}</li>" for n, c in next_release)
+            + "</ul>"
         )
 
         hass.data.setdefault(DOMAIN, {})
-        hass.data[DOMAIN]["forecast"] = features
+        hass.data[DOMAIN]["forecast_upcoming"] = upcoming
+        hass.data[DOMAIN]["forecast_next"] = next_release
         hass.data[DOMAIN]["rendered_html"] = html
 
         hass.states.async_set(
             "sensor.haos_feature_forecast_native",
             "ok",
-            {"rendered_html": html, "features": features},
+            {"rendered_html": html, "upcoming": upcoming, "next": next_release},
         )
 
         await hass.services.async_call(
-            "persistent_notification",
-            "create",
-            {
-                "title": "HAOS Feature Forecast",
-                "message": "✅ Forecast fetched & stored.",
-            },
+            "persistent_notification","create",
+            {"title": "HAOS Feature Forecast",
+             "message": "✅ Forecast updated (v1.0.3)."},
         )
-
-        _LOGGER.info("Forecast updated successfully")
+        _LOGGER.info("Forecast v1.0.3 updated successfully")
 
     except Exception as e:
         _LOGGER.exception("async_fetch_haos_features failed: %s", e)
+
