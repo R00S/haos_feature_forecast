@@ -1,3 +1,4 @@
+# CET timestamp: 2025-11-01_21-53-34_CET
 """Async-safe forecast fetcher for HAOS Feature Forecast (HAOS 2025.10+)
 Updated: 2025-11-01_21-37-24_CET — adds dual-section forecasts and likelihoods.
 """
