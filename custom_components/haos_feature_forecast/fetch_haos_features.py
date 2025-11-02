@@ -7,7 +7,7 @@ CONF_ORDER = {"Very likely":3,"Likely":2,"Possible":1}
 
 def _src_badge(src, url):
     if url:
-        return f"<a href="{url}" target="_blank">{src.title()}</a>"
+        return f'<a href="{url}" target="_blank">{src.title()}</a>'
     return src.title()
 
 def _rank_key(f):
@@ -48,7 +48,7 @@ async def async_fetch_haos_features(hass: HomeAssistant):
             lis = ""
             for i in items:
                 try:
-                    lis += f"<li>{i["title"]} <small>— {i.get("confidence","?\")} · {_src_badge(i.get("source"), i.get("url"))}</small></li>"
+                    lis += f"<li>{i['title']} <small>— {i.get("confidence","?\")} · {_src_badge(i.get('source'), i.get('url'))}</small></li>"
                 except Exception as err:
                     _LOGGER.warning(f"Render skip: {err}")
             return f"<h4>{title} ({ver})</h4><ul>{lis}</ul>"
