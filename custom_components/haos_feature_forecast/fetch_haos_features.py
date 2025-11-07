@@ -1,6 +1,14 @@
 """Async-safe forecast fetcher (cleaned, HAOS 2025.10 +)."""
 # Timestamp CET: 2025-11-02_00-47-45_CET
 
+import asyncio
+import logging
+from datetime import datetime, timedelta, timezone
+
+from homeassistant.core import HomeAssistant
+from .const import DOMAIN
+
+_LOGGER = logging.getLogger(__name__)
 
 SOURCE_WEIGHTS = {"blog":1.0,"forum":0.9,"reddit":0.8,"github":0.6}
 CONF_ORDER = {"Very likely":3,"Likely":2,"Possible":1}

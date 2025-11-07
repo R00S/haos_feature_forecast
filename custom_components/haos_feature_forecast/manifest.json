@@ -1,7 +1,7 @@
 {
   "domain": "haos_feature_forecast",
   "name": "HAOS Feature Forecast",
-  "version": "1.1.8",
+  "version": "1.1.9",
   "documentation": "https://github.com/R00S/haos_feature_forecast",
   "issue_tracker": "https://github.com/R00S/haos-feature-forecast/issues",
   "codeowners": ["@R00S"],
