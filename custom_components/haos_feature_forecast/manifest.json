@@ -1,18 +1,14 @@
 {
   "domain": "haos_feature_forecast",
   "name": "HAOS Feature Forecast",
-  "version": "1.1.9",
+  "version": "1.2.0",
   "documentation": "https://github.com/R00S/haos_feature_forecast",
   "issue_tracker": "https://github.com/R00S/haos-feature-forecast/issues",
   "codeowners": ["@R00S"],
-  "integration_type": "integration",
+  "integration_type": "service",
   "config_flow": true,
-  "after_dependencies": ["pyscript"],
-  "dependencies": ["pyscript"],
-  "requirements": ["aiofiles>=24.1.0", "pyyaml>=6.0.2"],
-  "homeassistant": "2025.10.0",
-  "quality_scale": "internal",
-  "iot_class": "local_polling",
-  "after_update_action": "reload",
-  "persistent_notification": true
+  "requirements": ["aiohttp>=3.8.0"],
+  "homeassistant": "2024.1.0",
+  "quality_scale": "silver",
+  "iot_class": "cloud_polling"
 }
