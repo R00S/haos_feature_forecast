@@ -1,7 +1,7 @@
 # HAOS Feature Forecast
 
-Forecast upcoming Home Assistant features using AI analysis of public development signals.
-This integration automatically gathers recent data from the HA blog, GitHub pull requests, and Reddit to estimate which features are most likely to appear in upcoming Home Assistant OS releases.
+Forecast upcoming Home Assistant features using live release data from GitHub.
+This integration automatically fetches real Home Assistant Core and OS release data from GitHub to predict upcoming releases and features.
 
 ---
 
@@ -13,35 +13,26 @@ This integration automatically gathers recent data from the HA blog, GitHub pull
    Choose **Integration** as category.
 3. Install **HAOS Feature Forecast**.
 4. Restart Home Assistant.
+5. Go to **Settings → Devices & Services → Add Integration** and search for "HAOS Feature Forecast"
 
 ---
 
-## ⚙️ Requirements
+## ✨ What's New in v1.2.0
 
-| Component | Purpose |
-|------------|----------|
-| **Pyscript** | Executes forecasting logic (`fetch_haos_features.py`) |
-| **MQTT broker** | Publishes forecast data |
-| **OpenAI API key** | Required for GPT analysis |
-
-Add to `/config/secrets.yaml`:
-```yaml
-openai_api_key: "sk-yourkey"
-```
+- **Live Data Fetching**: Now fetches real release data from GitHub APIs
+- **Automatic Predictions**: Calculates next release dates based on historical release cadence
+- **Standalone Integration**: No longer requires Pyscript - works as a native Home Assistant integration
+- **Improved Visibility**: Integration now appears in the integrations dashboard
 
 ---
 
-## 🤖 Connecting ChatGPT / OpenAI
+## ⚙️ Features
 
-The script connects directly to OpenAI using your API key from `secrets.yaml`.
-
-Test connection manually:
-```bash
-curl -s https://api.openai.com/v1/models \
-  -H "Authorization: Bearer sk-yourkey"
-```
-A valid key returns a list of models (e.g. `gpt-4o-mini`).
-If connection fails, check Home Assistant → **Settings → System → Logs → Pyscript**.
+- Fetches live Home Assistant Core and OS release data from GitHub
+- Predicts next release dates using statistical analysis of historical releases
+- Automatic updates every 6 hours
+- Manual update via service call
+- Beautiful Lovelace card display
 
 ---
 
@@ -49,20 +40,23 @@ If connection fails, check Home Assistant → **Settings → System → Logs →
 
 | Path | Description |
 |------|--------------|
-| `custom_components/haos_feature_forecast/` | Minimal sensor shell |
-| `pyscript/fetch_haos_features.py` | Full forecasting engine |
-| `custom_components/haos_feature_forecast/lovelace_card.yaml` | Markdown card |
+| `custom_components/haos_feature_forecast/` | Integration components |
+| `custom_components/haos_feature_forecast/lovelace_card.yaml` | Markdown card template |
 
 ---
 
-## 🚀 Run the Forecast
+## 🚀 Usage
 
+### Automatic Updates
+The integration automatically updates every 6 hours after being configured.
+
+### Manual Update
 1. Open **Developer Tools → Services**
 2. Call:
    ```
-   pyscript.fetch_haos_features
+   haos_feature_forecast.update_forecast
    ```
-3. Wait 30 s — sensor `sensor.haos_features_native` will appear.
+3. Wait a few seconds — sensor will update with latest data.
 
 ---
 
@@ -72,7 +66,7 @@ If connection fails, check Home Assistant → **Settings → System → Logs →
 type: markdown
 title: Home Assistant Feature Forecast
 content: >
-  {% set f = state_attr('sensor.haos_features_native','rendered_html') %}
+  {% set f = state_attr('sensor.haos_feature_forecast_native','rendered_html') %}
   {{ f if f else "Waiting for forecast data..." }}
 ```
 
@@ -83,21 +77,18 @@ content: >
 | Attribute | Meaning |
 |------------|----------|
 | `state` | Current status |
-| `rendered_html` | Full forecast display |
-| `upcoming_features` | Predicted for next release |
-| `next_features` | Predicted for following release |
-| `confidence_overall` | Average confidence score |
-| `mqtt_topic` | Publishes JSON to `homeassistant/haos_features/state` |
-
-Data history stored in `/config/pyscript/data/haos_features_history.jsonl`.
+| `rendered_html` | Full forecast display with live GitHub data |
+| `release_data` | Raw release information from GitHub |
 
 ---
 
-## 🧠 Notes
+## 🔧 Technical Details
 
-- Uses `gpt-4o-mini` with fallback to `gpt-5-mini`
-- Manual trigger now, automation later
-- Compatible with any Lovelace dashboard
+The integration:
+- Fetches up to 30 recent releases from Home Assistant Core and OS repositories
+- Calculates average time between releases to predict future releases
+- Stores release data in Home Assistant's data store
+- Updates automatically every 6 hours via DataUpdateCoordinator
 
 ---
 
