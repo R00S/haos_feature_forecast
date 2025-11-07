@@ -370,8 +370,26 @@ async def fetch_forum_features(session: aiohttp.ClientSession) -> List[Dict[str,
                     likes = topic.get("like_count", 0)
                     views = topic.get("views", 0)
                     
-                    # Skip generic topics
-                    if any(skip in title.lower() for skip in ["update", "general", "discussion"]):
+                    # Skip meta-posts about the feature request process itself and non-specific topics
+                    title_lower = title.lower()
+                    
+                    # Define skip patterns for meta-posts and non-specific content
+                    skip_patterns = [
+                        "update", "general", "discussion",  # Original filters
+                        "about the", "guidelines", "guide",  # Meta category/process posts
+                        "heads-up", "moving",  # Meta announcements
+                        "how to", "rules", "process",  # Process documentation
+                        "pinned", "sticky",  # Pinned meta-posts
+                        "category", "faq", "frequently asked",  # Category information
+                        "feature requests are", "feature request guidelines",  # Specific meta-posts about FR process
+                    ]
+                    
+                    # Skip if title matches any skip pattern
+                    if any(skip in title_lower for skip in skip_patterns):
+                        continue
+                    
+                    # Skip titles that are too generic or vague (very short titles are often meta)
+                    if len(title.strip()) < 15:
                         continue
                     
                     # Calculate importance based on engagement
