@@ -35,7 +35,20 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     
     # Create and store the coordinator
     coordinator = HaosFeatureForecastCoordinator(hass)
-    await coordinator.async_config_entry_first_refresh()
+    
+    # Perform first refresh - but don't fail if it errors
+    # The coordinator will provide a helpful error message in the card
+    try:
+        await coordinator.async_config_entry_first_refresh()
+        _LOGGER.info("HAOS Feature Forecast: Initial data fetch completed successfully")
+    except Exception as err:
+        # Log the error but don't fail setup - coordinator will show error message in card
+        _LOGGER.warning(
+            f"HAOS Feature Forecast: Initial data fetch failed - {err}. "
+            f"The integration will continue to work and retry every 6 hours. "
+            f"Check the card for troubleshooting information."
+        )
+    
     hass.data[DOMAIN]["coordinator"] = coordinator
     
     # Forward entry setup to platform
