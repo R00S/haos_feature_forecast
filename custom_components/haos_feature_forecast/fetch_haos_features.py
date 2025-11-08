@@ -28,6 +28,9 @@ HA_BLOG_RSS = "https://www.home-assistant.io/blog/feed.xml"
 HA_BLOG = "https://www.home-assistant.io/blog/"
 COMMUNITY_FORUM = "https://community.home-assistant.io"
 
+# HACS URLs
+HACS_DEFAULT_REPOS = "https://raw.githubusercontent.com/hacs/default/master/data.json"
+
 # Importance levels (1-5 scale)
 IMPORTANCE_CRITICAL = 5  # Core features, widely used integrations
 IMPORTANCE_HIGH = 4      # Popular features, major integrations
@@ -402,8 +405,9 @@ async def fetch_forum_features(session: aiohttp.ClientSession) -> List[Dict[str,
                     else:
                         continue  # Skip low engagement
                     
-                    # Forum features are speculative
-                    likelihood = LIKELIHOOD_LOW
+                    # Forum features are speculative unless someone is actively working on them
+                    # They usually end up in HACS first before getting implemented
+                    likelihood = LIKELIHOOD_SPECULATIVE
                     
                     topic_id = topic.get("id")
                     url = f"{COMMUNITY_FORUM}/t/{topic_id}" if topic_id else COMMUNITY_FORUM
@@ -421,6 +425,202 @@ async def fetch_forum_features(session: aiohttp.ClientSession) -> List[Dict[str,
     
     except Exception as err:
         _LOGGER.warning(f"Error fetching forum features: {err}")
+    
+    return features
+
+async def fetch_hacs_features(session: aiohttp.ClientSession) -> List[Dict[str, Any]]:
+    """Fetch popular NEW or recently UPGRADED HACS integrations and cards."""
+    features = []
+    
+    try:
+        # Fetch HACS default repositories data
+        async with session.get(HACS_DEFAULT_REPOS, timeout=aiohttp.ClientTimeout(total=15)) as resp:
+            if resp.status != 200:
+                _LOGGER.debug(f"Could not fetch HACS data: {resp.status}")
+                return features
+            
+            data = await resp.json()
+            
+            # Get current time for recency checks
+            now = datetime.now(timezone.utc)
+            three_months_ago = now - timedelta(days=90)
+            
+            # Process integrations
+            integrations = data.get("integrations", [])
+            for integration in integrations[:100]:  # Check more to find recent ones
+                try:
+                    repo_name = integration.get("repository", "")
+                    if not repo_name:
+                        continue
+                    
+                    # Fetch repository details from GitHub to get stars and other metrics
+                    repo_url = f"https://api.github.com/repos/{repo_name}"
+                    async with session.get(repo_url, timeout=aiohttp.ClientTimeout(total=10)) as repo_resp:
+                        if repo_resp.status != 200:
+                            continue
+                        
+                        repo_data = await repo_resp.json()
+                        stars = repo_data.get("stargazers_count", 0)
+                        description = repo_data.get("description", "")
+                        name = repo_data.get("name", "").replace("-", " ").replace("_", " ").title()
+                        created_at = repo_data.get("created_at", "")
+                        updated_at = repo_data.get("updated_at", "")
+                        pushed_at = repo_data.get("pushed_at", "")
+                        
+                        # Skip if too few stars (not popular enough)
+                        if stars < 50:
+                            continue
+                        
+                        # Check if it's new or recently updated
+                        is_new = False
+                        is_updated = False
+                        
+                        if created_at:
+                            created_date = datetime.fromisoformat(created_at.replace("Z", "+00:00"))
+                            is_new = created_date > three_months_ago
+                        
+                        if pushed_at:
+                            push_date = datetime.fromisoformat(pushed_at.replace("Z", "+00:00"))
+                            is_updated = push_date > three_months_ago
+                        
+                        # Only include if new or recently updated
+                        if not (is_new or is_updated):
+                            continue
+                        
+                        # Fetch latest release to check for recent version updates
+                        releases_url = f"https://api.github.com/repos/{repo_name}/releases/latest"
+                        recent_release = False
+                        release_info = ""
+                        
+                        async with session.get(releases_url, timeout=aiohttp.ClientTimeout(total=10)) as rel_resp:
+                            if rel_resp.status == 200:
+                                release_data = await rel_resp.json()
+                                release_date_str = release_data.get("published_at", "")
+                                if release_date_str:
+                                    release_date = datetime.fromisoformat(release_date_str.replace("Z", "+00:00"))
+                                    if release_date > three_months_ago:
+                                        recent_release = True
+                                        tag = release_data.get("tag_name", "")
+                                        release_info = f" (latest: {tag})" if tag else ""
+                        
+                        # Calculate importance based on stars and recency
+                        if is_new and stars > 200:
+                            importance = IMPORTANCE_HIGH
+                        elif recent_release and stars > 500:
+                            importance = IMPORTANCE_HIGH
+                        elif stars > 300 or recent_release:
+                            importance = IMPORTANCE_MEDIUM
+                        elif stars > 100:
+                            importance = IMPORTANCE_LOW
+                        else:
+                            continue
+                        
+                        # Check if there are discussions about incorporating it into HA
+                        search_query = f"repo:home-assistant/core {name} OR repo:home-assistant/architecture {name}"
+                        search_url = "https://api.github.com/search/issues"
+                        likelihood = LIKELIHOOD_LOW
+                        
+                        async with session.get(
+                            search_url,
+                            params={"q": search_query, "per_page": 5},
+                            timeout=aiohttp.ClientTimeout(total=10)
+                        ) as search_resp:
+                            if search_resp.status == 200:
+                                search_data = await search_resp.json()
+                                discussion_count = search_data.get("total_count", 0)
+                                
+                                # If there's discussion about it, it's more likely to be incorporated
+                                if discussion_count > 0:
+                                    likelihood = LIKELIHOOD_MEDIUM
+                        
+                        # Determine status label
+                        status = "New" if is_new else "Updated"
+                        
+                        # Add to features
+                        features.append({
+                            "title": f"{name} integration ({status}){release_info}{(' - ' + description[:40]) if description else ''}",
+                            "importance": importance,
+                            "likelihood": likelihood,
+                            "source": "hacs",
+                            "url": repo_data.get("html_url", "")
+                        })
+                        
+                        # Limit to prevent rate limiting
+                        await asyncio.sleep(0.15)
+                        
+                except Exception as err:
+                    _LOGGER.debug(f"Error processing HACS integration: {err}")
+                    continue
+            
+            # Process lovelace cards
+            cards = data.get("lovelace", [])
+            for card in cards[:50]:  # Check more cards
+                try:
+                    repo_name = card.get("repository", "")
+                    if not repo_name:
+                        continue
+                    
+                    # Fetch repository details
+                    repo_url = f"https://api.github.com/repos/{repo_name}"
+                    async with session.get(repo_url, timeout=aiohttp.ClientTimeout(total=10)) as repo_resp:
+                        if repo_resp.status != 200:
+                            continue
+                        
+                        repo_data = await repo_resp.json()
+                        stars = repo_data.get("stargazers_count", 0)
+                        name = repo_data.get("name", "").replace("-", " ").replace("_", " ").title()
+                        created_at = repo_data.get("created_at", "")
+                        pushed_at = repo_data.get("pushed_at", "")
+                        
+                        # Skip if too few stars
+                        if stars < 100:
+                            continue
+                        
+                        # Check if it's new or recently updated
+                        is_new = False
+                        is_updated = False
+                        
+                        if created_at:
+                            created_date = datetime.fromisoformat(created_at.replace("Z", "+00:00"))
+                            is_new = created_date > three_months_ago
+                        
+                        if pushed_at:
+                            push_date = datetime.fromisoformat(pushed_at.replace("Z", "+00:00"))
+                            is_updated = push_date > three_months_ago
+                        
+                        # Only include if new or recently updated
+                        if not (is_new or is_updated):
+                            continue
+                        
+                        # Cards need more stars to be considered
+                        if stars > 1000:
+                            importance = IMPORTANCE_MEDIUM
+                        elif stars > 500:
+                            importance = IMPORTANCE_LOW
+                        else:
+                            continue
+                        
+                        # Cards are less likely to be incorporated
+                        likelihood = LIKELIHOOD_LOW
+                        
+                        status = "New" if is_new else "Updated"
+                        
+                        features.append({
+                            "title": f"{name} card ({status})",
+                            "importance": importance,
+                            "likelihood": likelihood,
+                            "source": "hacs",
+                            "url": repo_data.get("html_url", "")
+                        })
+                        
+                        await asyncio.sleep(0.15)
+                        
+                except Exception as err:
+                    _LOGGER.debug(f"Error processing HACS card: {err}")
+                    continue
+    
+    except Exception as err:
+        _LOGGER.warning(f"Error fetching HACS features: {err}")
     
     return features
 
@@ -444,6 +644,7 @@ async def async_fetch_haos_features(hass: HomeAssistant):
                 fetch_blog_features(session),
                 fetch_discussion_features(session),
                 fetch_forum_features(session),
+                fetch_hacs_features(session),
                 return_exceptions=True  # Don't fail if one source fails
             )
             
@@ -453,13 +654,14 @@ async def async_fetch_haos_features(hass: HomeAssistant):
             blog_features = results[3] if not isinstance(results[3], Exception) else []
             discussion_features = results[4] if not isinstance(results[4], Exception) else []
             forum_features = results[5] if not isinstance(results[5], Exception) else []
+            hacs_features = results[6] if not isinstance(results[6], Exception) else []
         
-        # Combine all features from different sources
+        # Combine all features from different sources (excluding HACS for now)
         all_features = github_features + blog_features + discussion_features + forum_features
         
         _LOGGER.info(f"Fetched features: {len(github_features)} from GitHub, "
                     f"{len(blog_features)} from blog, {len(discussion_features)} from discussions, "
-                    f"{len(forum_features)} from forum")
+                    f"{len(forum_features)} from forum, {len(hacs_features)} from HACS")
         
         # Store the raw data
         release_data = {
@@ -505,6 +707,10 @@ async def async_fetch_haos_features(hass: HomeAssistant):
         # Sort features by importance * likelihood
         unique_features = sorted(unique_features, key=_rank_key)
         
+        # Process HACS features separately - they deserve their own section
+        hacs_features_sorted = sorted(hacs_features, key=_rank_key)
+        top_hacs = hacs_features_sorted[:10]  # Show top 5-10 HACS features
+        
         # Split features between upcoming and next releases
         # Allocate 60% to upcoming, 40% to next
         split_point = max(6, int(len(unique_features) * 0.6))
@@ -521,9 +727,10 @@ async def async_fetch_haos_features(hass: HomeAssistant):
         upcoming_ver = f"{upcoming_year}.{upcoming_month}"
         next_ver = f"{next_year}.{next_month}"
 
-        def _render(title, items, version):
+        def _render(title, items, version=None):
+            version_text = f" ({version})" if version else ""
             if not items:
-                return f"<h4>{title} ({version})</h4><p><i>No confirmed features yet. Check back later!</i></p>"
+                return f"<h4>{title}{version_text}</h4><p><i>No confirmed features yet. Check back later!</i></p>"
             
             lis = ""
             for i in items:
@@ -533,13 +740,15 @@ async def async_fetch_haos_features(hass: HomeAssistant):
                     lis += f"<li>{i['title']} <small>— {imp_label} · {lik_label} · {_src_badge(i.get('source'), i.get('url'))}</small></li>"
                 except Exception as err:
                     _LOGGER.warning(f"Render skip: {err}")
-            return f"<h4>{title} ({version})</h4><ul>{lis}</ul>"
+            return f"<h4>{title}{version_text}</h4><ul>{lis}</ul>"
 
-        # Add release statistics with sources breakdown
+        # Add release statistics with sources breakdown (including HACS)
         source_counts = {}
         for f in all_features:
             src = f.get('source', 'unknown')
             source_counts[src] = source_counts.get(src, 0) + 1
+        if hacs_features:
+            source_counts['hacs'] = len(hacs_features)
         
         source_text = ", ".join([f"{count} from {src}" for src, count in source_counts.items()])
         stats_html = f"<p><small>📊 Analyzing {len(unique_features)} unique features ({source_text})</small></p>"
@@ -547,11 +756,12 @@ async def async_fetch_haos_features(hass: HomeAssistant):
         html = (f"<p><b>Last updated:</b> {ts} CET | <b>Current version:</b> {current_year}.{current_month}</p>" + 
                 stats_html +
                 _render("Upcoming", upcoming, upcoming_ver) + 
-                _render("Next", nxt, next_ver))
+                _render("Next", nxt, next_ver) +
+                _render("New & Updated HACS Features", top_hacs))
 
         hass.data.setdefault(DOMAIN, {})["rendered_html"] = html
         hass.states.async_set("sensor.haos_feature_forecast_native","ok",{"rendered_html": html})
-        _LOGGER.info(f"Forecast updated v1.3.0 with {len(unique_features)} real features from multiple sources")
+        _LOGGER.info(f"Forecast updated v1.4.0 with {len(unique_features)} real features from multiple sources and {len(top_hacs)} HACS features")
 
     except Exception as e:
         _LOGGER.exception("async_fetch_haos_features failed: %s", e)
