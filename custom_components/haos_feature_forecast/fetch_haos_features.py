@@ -449,13 +449,15 @@ async def fetch_hacs_features(session: aiohttp.ClientSession, headers: Optional[
     features = []
     
     try:
+        _LOGGER.info("Fetching HACS features from default repository...")
         # Fetch HACS default repositories data
         async with session.get(HACS_DEFAULT_REPOS, timeout=aiohttp.ClientTimeout(total=15)) as resp:
             if resp.status != 200:
-                _LOGGER.debug(f"Could not fetch HACS data: {resp.status}")
+                _LOGGER.warning(f"Could not fetch HACS data: HTTP {resp.status}")
                 return features
             
             data = await resp.json()
+            _LOGGER.info(f"HACS data fetched successfully. Found {len(data.get('integrations', []))} integrations and {len(data.get('lovelace', []))} cards")
             
             # Get current time for recency checks
             now = datetime.now(timezone.utc)
@@ -464,8 +466,12 @@ async def fetch_hacs_features(session: aiohttp.ClientSession, headers: Optional[
             # Process integrations
             integrations = data.get("integrations", [])
             # Drastically limit iterations to avoid rate limiting - process only 10 integrations
+            _LOGGER.info(f"Processing up to 10 HACS integrations (out of {len(integrations)} available)...")
+            integrations_checked = 0
+            integrations_filtered = 0
             for integration in integrations[:10]:
                 try:
+                    integrations_checked += 1
                     repo_name = integration.get("repository", "")
                     if not repo_name:
                         continue
@@ -486,6 +492,8 @@ async def fetch_hacs_features(session: aiohttp.ClientSession, headers: Optional[
                         
                         # Skip if too few stars (not popular enough)
                         if stars < 50:
+                            integrations_filtered += 1
+                            _LOGGER.debug(f"Filtered {name}: only {stars} stars (need 50+)")
                             continue
                         
                         # Check if it's new or recently updated
@@ -502,6 +510,8 @@ async def fetch_hacs_features(session: aiohttp.ClientSession, headers: Optional[
                         
                         # Only include if new or recently updated
                         if not (is_new or is_updated):
+                            integrations_filtered += 1
+                            _LOGGER.debug(f"Filtered {name}: not updated in last 3 months")
                             continue
                         
                         # Skip fetching release info to save API quota
@@ -519,6 +529,8 @@ async def fetch_hacs_features(session: aiohttp.ClientSession, headers: Optional[
                         elif stars > 100:
                             importance = IMPORTANCE_LOW
                         else:
+                            integrations_filtered += 1
+                            _LOGGER.debug(f"Filtered {name}: importance too low (stars: {stars})")
                             continue
                         
                         # HACS features are always low likelihood for HA core incorporation
@@ -536,6 +548,7 @@ async def fetch_hacs_features(session: aiohttp.ClientSession, headers: Optional[
                             "source": "hacs",
                             "url": repo_data.get("html_url", "")
                         })
+                        _LOGGER.info(f"Added HACS integration: {name} ({status}, {stars} stars)")
                         
                         # Limit to prevent rate limiting
                         await asyncio.sleep(0.15)
@@ -544,11 +557,17 @@ async def fetch_hacs_features(session: aiohttp.ClientSession, headers: Optional[
                     _LOGGER.debug(f"Error processing HACS integration: {err}")
                     continue
             
+            _LOGGER.info(f"HACS integrations: checked {integrations_checked}, filtered {integrations_filtered}, added {len([f for f in features if 'integration' in f.get('title', '')])}")
+            
             # Process lovelace cards
             cards = data.get("lovelace", [])
             # Limit to 5 cards to conserve API quota
+            _LOGGER.info(f"Processing up to 5 HACS cards (out of {len(cards)} available)...")
+            cards_checked = 0
+            cards_filtered = 0
             for card in cards[:5]:
                 try:
+                    cards_checked += 1
                     repo_name = card.get("repository", "")
                     if not repo_name:
                         continue
@@ -567,6 +586,8 @@ async def fetch_hacs_features(session: aiohttp.ClientSession, headers: Optional[
                         
                         # Skip if too few stars
                         if stars < 100:
+                            cards_filtered += 1
+                            _LOGGER.debug(f"Filtered card {name}: only {stars} stars (need 100+)")
                             continue
                         
                         # Check if it's new or recently updated
@@ -583,6 +604,8 @@ async def fetch_hacs_features(session: aiohttp.ClientSession, headers: Optional[
                         
                         # Only include if new or recently updated
                         if not (is_new or is_updated):
+                            cards_filtered += 1
+                            _LOGGER.debug(f"Filtered card {name}: not updated in last 3 months")
                             continue
                         
                         # Cards need more stars to be considered
@@ -591,6 +614,8 @@ async def fetch_hacs_features(session: aiohttp.ClientSession, headers: Optional[
                         elif stars > 500:
                             importance = IMPORTANCE_LOW
                         else:
+                            cards_filtered += 1
+                            _LOGGER.debug(f"Filtered card {name}: not enough stars for inclusion (need 500+, has {stars})")
                             continue
                         
                         # Cards are less likely to be incorporated
@@ -605,12 +630,16 @@ async def fetch_hacs_features(session: aiohttp.ClientSession, headers: Optional[
                             "source": "hacs",
                             "url": repo_data.get("html_url", "")
                         })
+                        _LOGGER.info(f"Added HACS card: {name} ({status}, {stars} stars)")
                         
                         await asyncio.sleep(0.15)
                         
                 except Exception as err:
                     _LOGGER.debug(f"Error processing HACS card: {err}")
                     continue
+            
+            _LOGGER.info(f"HACS cards: checked {cards_checked}, filtered {cards_filtered}, added {len([f for f in features if 'card' in f.get('title', '')])}")
+            _LOGGER.info(f"Total HACS features collected: {len(features)}")
     
     except Exception as err:
         _LOGGER.warning(f"Error fetching HACS features: {err}")
@@ -748,6 +777,15 @@ async def async_fetch_haos_features(hass: HomeAssistant):
         # Process HACS features separately - they deserve their own section
         hacs_features_sorted = sorted(hacs_features, key=_rank_key)
         top_hacs = hacs_features_sorted[:5]  # Show top 3-5 HACS features (reduced to conserve display space)
+        
+        # Log HACS features for debugging
+        if not hacs_features:
+            _LOGGER.warning("No HACS features found. This could be due to: 1) Rate limiting, 2) No features match criteria (50+ stars, updated within 3 months), 3) HACS data fetch failed")
+        else:
+            _LOGGER.info(f"Found {len(hacs_features)} HACS features, showing top {len(top_hacs)}")
+            if _LOGGER.isEnabledFor(logging.DEBUG):
+                for idx, feat in enumerate(top_hacs, 1):
+                    _LOGGER.debug(f"  HACS {idx}: {feat.get('title', 'Unknown')}")
         
         # Split features between upcoming and next releases
         # Allocate 60% to upcoming, 40% to next

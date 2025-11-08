@@ -4,6 +4,7 @@ import logging
 from homeassistant.components.sensor import SensorEntity
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
+from homeassistant.helpers import entity_registry as er
 from .const import DOMAIN
 from .coordinator import HaosFeatureForecastCoordinator
 
@@ -11,6 +12,21 @@ _LOGGER = logging.getLogger(__name__)
 
 async def async_setup_entry(hass, entry, async_add_entities: AddEntitiesCallback):
     coordinator = hass.data[DOMAIN]["coordinator"]
+    
+    # Check if the sensor entity already exists in the entity registry
+    entity_reg = er.async_get(hass)
+    unique_id = "haos_feature_forecast"
+    
+    # Look for existing entity with this unique_id
+    existing_entity = entity_reg.async_get_entity_id("sensor", DOMAIN, unique_id)
+    
+    if existing_entity:
+        _LOGGER.info(f"Sensor entity already exists: {existing_entity}, reusing it")
+        # Entity already exists, the cleanup in __init__.py should have handled duplicates
+        # We still create the sensor object but it will reuse the existing entity
+    else:
+        _LOGGER.info("Creating new HAOS Feature Forecast sensor")
+    
     sensor = HaosFeatureForecastSensor(coordinator)
     async_add_entities([sensor], True)
     _LOGGER.info("HAOS Feature Forecast sensor created and added to Home Assistant")
@@ -22,6 +38,9 @@ class HaosFeatureForecastSensor(CoordinatorEntity, SensorEntity):
     _attr_name = "HAOS Feature Forecast"
     _attr_unique_id = "haos_feature_forecast"
     _attr_icon = "mdi:home-assistant"
+    
+    # Explicitly set the entity_id to prevent duplicates
+    entity_id = "sensor.haos_feature_forecast"
 
     def __init__(self, coordinator: HaosFeatureForecastCoordinator) -> None:
         """Initialize the sensor."""

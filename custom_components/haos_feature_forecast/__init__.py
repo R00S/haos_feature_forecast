@@ -1,6 +1,7 @@
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, ServiceCall
 from homeassistant.const import Platform
+from homeassistant.helpers import entity_registry as er
 from .const import DOMAIN
 from .coordinator import HaosFeatureForecastCoordinator
 import asyncio
@@ -29,6 +30,44 @@ async def async_setup(hass: HomeAssistant, config: dict) -> bool:
     hass.services.async_register(DOMAIN, "update_forecast", handle_update_forecast)
     return True
 
+async def _cleanup_old_entities(hass: HomeAssistant, entry: ConfigEntry) -> None:
+    """Clean up old duplicate sensor entities from previous versions."""
+    entity_reg = er.async_get(hass)
+    
+    # The correct unique_id for our sensor
+    correct_unique_id = "haos_feature_forecast"
+    
+    # Find all entities for this integration
+    entities = er.async_entries_for_config_entry(entity_reg, entry.entry_id)
+    
+    # Look for our sensor entities
+    main_entity = None
+    duplicate_entities = []
+    
+    for entity in entities:
+        if entity.domain == "sensor" and entity.unique_id == correct_unique_id:
+            # Check if this is the main entity we want to keep
+            if entity.entity_id == "sensor.haos_feature_forecast":
+                main_entity = entity
+                _LOGGER.info(f"Found existing sensor entity: {entity.entity_id}")
+            else:
+                # This is a duplicate with wrong entity_id (like sensor.haos_feature_forecast_2)
+                duplicate_entities.append(entity)
+                _LOGGER.warning(f"Found duplicate sensor entity: {entity.entity_id} (will be removed)")
+    
+    # Remove duplicate entities
+    for entity in duplicate_entities:
+        _LOGGER.info(f"Removing old duplicate sensor entity: {entity.entity_id}")
+        entity_reg.async_remove(entity.entity_id)
+    
+    if duplicate_entities:
+        _LOGGER.info(f"Cleaned up {len(duplicate_entities)} duplicate sensor entities")
+    
+    if main_entity:
+        _LOGGER.info("Using existing sensor.haos_feature_forecast entity")
+    else:
+        _LOGGER.info("No existing sensor entity found, will create new one")
+
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up HAOS Feature Forecast from a config entry."""
     _LOGGER.info("="*60)
@@ -36,6 +75,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     _LOGGER.info("="*60)
     
     hass.data.setdefault(DOMAIN, {})
+    
+    # Clean up any duplicate sensor entities from old versions
+    await _cleanup_old_entities(hass, entry)
     
     # Store the config entry for access to GitHub token
     hass.data[DOMAIN]["config_entry"] = entry
