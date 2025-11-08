@@ -46,6 +46,13 @@ If you're experiencing issues like an empty card or no data showing:
 
 ---
 
+## ✨ What's New in v1.4.3
+
+- **Entity Cleanup**: Automatically removes duplicate sensor entities (e.g., `sensor.haos_feature_forecast_2`, `_3`) on upgrade
+- **Entity Stability**: Fixed entity_id consistency to always use `sensor.haos_feature_forecast`
+- **Enhanced HACS Diagnostics**: Added comprehensive logging to diagnose empty HACS sections
+- **Better Error Messages**: More detailed logs explain why HACS features may be filtered out
+
 ## ✨ What's New in v1.4.0
 
 - **HACS Integration Tracking**: Now tracks popular NEW or recently UPGRADED HACS integrations and cards (within last 3 months)
