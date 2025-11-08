@@ -22,7 +22,7 @@ This shows all log entries related to the integration. Look for:
 Verify the sensor exists and has data:
 
 ```bash
-ha core api --method GET /api/states/sensor.haos_feature_forecast_haos_feature_forecast
+ha core api --method GET /api/states/sensor.haos_feature_forecast
 ```
 
 This returns the sensor's state and attributes. Look for:
@@ -98,11 +98,11 @@ Verify your Lovelace card is configured correctly. The card should use:
 type: markdown
 title: Home Assistant Feature Forecast
 content: >
-  {% set f = state_attr('sensor.haos_feature_forecast_haos_feature_forecast','rendered_html') %}
+  {% set f = state_attr('sensor.haos_feature_forecast','rendered_html') %}
   {{ f if f else "Waiting for forecast data..." }}
 ```
 
-**Note the sensor entity ID:** `sensor.haos_feature_forecast_haos_feature_forecast`
+**Note the sensor entity ID:** `sensor.haos_feature_forecast`
 
 To verify in terminal:
 
@@ -225,7 +225,7 @@ echo "--- HA Version ---" >> /tmp/diagnostics.txt
 ha core info | grep -i version >> /tmp/diagnostics.txt
 echo "" >> /tmp/diagnostics.txt
 echo "--- Sensor State ---" >> /tmp/diagnostics.txt
-ha core api --method GET /api/states/sensor.haos_feature_forecast_haos_feature_forecast >> /tmp/diagnostics.txt 2>&1
+ha core api --method GET /api/states/sensor.haos_feature_forecast >> /tmp/diagnostics.txt 2>&1
 echo "" >> /tmp/diagnostics.txt
 echo "--- Recent Logs ---" >> /tmp/diagnostics.txt
 ha core logs | grep -i "haos_feature_forecast" | tail -50 >> /tmp/diagnostics.txt

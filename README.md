@@ -113,7 +113,7 @@ The integration automatically updates every 6 hours after being configured.
 type: markdown
 title: Home Assistant Feature Forecast
 content: >
-  {% set f = state_attr('sensor.haos_feature_forecast_native','rendered_html') %}
+  {% set f = state_attr('sensor.haos_feature_forecast','rendered_html') %}
   {{ f if f else "Waiting for forecast data..." }}
 ```
 
