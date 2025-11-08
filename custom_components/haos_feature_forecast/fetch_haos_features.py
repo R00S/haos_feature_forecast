@@ -103,11 +103,17 @@ async def fetch_github_data(session: aiohttp.ClientSession, url: str, params: Op
         async with session.get(url, params=params, headers=headers, timeout=aiohttp.ClientTimeout(total=30)) as resp:
             if resp.status == 200:
                 return await resp.json()
+            elif resp.status == 403:
+                _LOGGER.warning(f"GitHub API rate limit exceeded (status 403). Add a GitHub token in integration options to increase rate limit from 60/hour to 5000/hour.")
+                return []
+            elif resp.status == 401:
+                _LOGGER.error(f"GitHub API authentication failed (status 401). Check that your GitHub token is valid.")
+                return []
             else:
-                _LOGGER.warning(f"GitHub API returned status {resp.status} for {url}")
+                _LOGGER.debug(f"GitHub API returned status {resp.status} for {url}")
                 return []
     except Exception as err:
-        _LOGGER.error(f"Failed to fetch from {url}: {err}")
+        _LOGGER.debug(f"Failed to fetch from {url}: {err}")
         return []
 
 def predict_next_release(releases: List[Dict[str, Any]]) -> datetime:
@@ -255,14 +261,21 @@ async def fetch_real_features(session: aiohttp.ClientSession, headers: Optional[
     return features
 
 async def fetch_blog_features(session: aiohttp.ClientSession) -> List[Dict[str, Any]]:
-    """Fetch planned features mentioned in Home Assistant blog posts."""
+    """Fetch planned features mentioned in Home Assistant blog posts.
+    
+    Note: The blog RSS feed may occasionally return 404 due to:
+    - DNS/network issues
+    - Blog infrastructure changes
+    - Rate limiting on the home-assistant.io server
+    This is handled gracefully by returning empty list and using cached data.
+    """
     features = []
     
     try:
         # Fetch recent blog posts
         async with session.get(HA_BLOG_RSS, timeout=aiohttp.ClientTimeout(total=15)) as resp:
             if resp.status != 200:
-                _LOGGER.warning(f"Failed to fetch blog RSS: {resp.status}")
+                _LOGGER.debug(f"Blog RSS returned status {resp.status} - this is normal if the blog feed is temporarily unavailable")
                 return features
             
             content = await resp.text()
@@ -682,15 +695,15 @@ async def async_fetch_haos_features(hass: HomeAssistant):
         
         # Log which sources failed and are using cache
         if isinstance(results[2], Exception) or not results[2]:
-            _LOGGER.warning(f"GitHub features fetch failed, using cached data ({len(github_features)} features)")
+            _LOGGER.info(f"GitHub features fetch returned no data, using cached data ({len(github_features)} features). This may be due to rate limiting - consider adding a GitHub token.")
         if isinstance(results[3], Exception) or not results[3]:
-            _LOGGER.warning(f"Blog features fetch failed, using cached data ({len(blog_features)} features)")
+            _LOGGER.debug(f"Blog features fetch returned no data, using cached data ({len(blog_features)} features). The blog RSS feed may be temporarily unavailable.")
         if isinstance(results[4], Exception) or not results[4]:
-            _LOGGER.warning(f"Discussion features fetch failed, using cached data ({len(discussion_features)} features)")
+            _LOGGER.debug(f"Discussion features fetch returned no data, using cached data ({len(discussion_features)} features)")
         if isinstance(results[5], Exception) or not results[5]:
-            _LOGGER.warning(f"Forum features fetch failed, using cached data ({len(forum_features)} features)")
+            _LOGGER.debug(f"Forum features fetch returned no data, using cached data ({len(forum_features)} features)")
         if isinstance(results[6], Exception) or not results[6]:
-            _LOGGER.warning(f"HACS features fetch failed, using cached data ({len(hacs_features)} features)")
+            _LOGGER.info(f"HACS features fetch returned no data, using cached data ({len(hacs_features)} features). This may be due to rate limiting - consider adding a GitHub token.")
         
         # Cache successful fetches for future fallback
         hass.data[DOMAIN]["cached_features"] = {
