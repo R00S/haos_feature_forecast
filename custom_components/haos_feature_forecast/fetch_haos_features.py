@@ -429,7 +429,7 @@ async def fetch_forum_features(session: aiohttp.ClientSession) -> List[Dict[str,
     return features
 
 async def fetch_hacs_features(session: aiohttp.ClientSession) -> List[Dict[str, Any]]:
-    """Fetch popular HACS integrations and cards that might be incorporated into HA."""
+    """Fetch popular NEW or recently UPGRADED HACS integrations and cards."""
     features = []
     
     try:
@@ -441,9 +441,13 @@ async def fetch_hacs_features(session: aiohttp.ClientSession) -> List[Dict[str, 
             
             data = await resp.json()
             
+            # Get current time for recency checks
+            now = datetime.now(timezone.utc)
+            three_months_ago = now - timedelta(days=90)
+            
             # Process integrations
             integrations = data.get("integrations", [])
-            for integration in integrations[:50]:  # Check top 50
+            for integration in integrations[:100]:  # Check more to find recent ones
                 try:
                     repo_name = integration.get("repository", "")
                     if not repo_name:
@@ -459,25 +463,63 @@ async def fetch_hacs_features(session: aiohttp.ClientSession) -> List[Dict[str, 
                         stars = repo_data.get("stargazers_count", 0)
                         description = repo_data.get("description", "")
                         name = repo_data.get("name", "").replace("-", " ").replace("_", " ").title()
+                        created_at = repo_data.get("created_at", "")
+                        updated_at = repo_data.get("updated_at", "")
+                        pushed_at = repo_data.get("pushed_at", "")
                         
                         # Skip if too few stars (not popular enough)
-                        if stars < 100:
+                        if stars < 50:
                             continue
                         
-                        # Calculate importance based on stars
-                        if stars > 1000:
+                        # Check if it's new or recently updated
+                        is_new = False
+                        is_updated = False
+                        
+                        if created_at:
+                            created_date = datetime.fromisoformat(created_at.replace("Z", "+00:00"))
+                            is_new = created_date > three_months_ago
+                        
+                        if pushed_at:
+                            push_date = datetime.fromisoformat(pushed_at.replace("Z", "+00:00"))
+                            is_updated = push_date > three_months_ago
+                        
+                        # Only include if new or recently updated
+                        if not (is_new or is_updated):
+                            continue
+                        
+                        # Fetch latest release to check for recent version updates
+                        releases_url = f"https://api.github.com/repos/{repo_name}/releases/latest"
+                        recent_release = False
+                        release_info = ""
+                        
+                        async with session.get(releases_url, timeout=aiohttp.ClientTimeout(total=10)) as rel_resp:
+                            if rel_resp.status == 200:
+                                release_data = await rel_resp.json()
+                                release_date_str = release_data.get("published_at", "")
+                                if release_date_str:
+                                    release_date = datetime.fromisoformat(release_date_str.replace("Z", "+00:00"))
+                                    if release_date > three_months_ago:
+                                        recent_release = True
+                                        tag = release_data.get("tag_name", "")
+                                        release_info = f" (latest: {tag})" if tag else ""
+                        
+                        # Calculate importance based on stars and recency
+                        if is_new and stars > 200:
                             importance = IMPORTANCE_HIGH
-                        elif stars > 500:
+                        elif recent_release and stars > 500:
+                            importance = IMPORTANCE_HIGH
+                        elif stars > 300 or recent_release:
                             importance = IMPORTANCE_MEDIUM
-                        elif stars > 200:
+                        elif stars > 100:
                             importance = IMPORTANCE_LOW
                         else:
                             continue
                         
                         # Check if there are discussions about incorporating it into HA
-                        # Look for issues/discussions mentioning the integration
                         search_query = f"repo:home-assistant/core {name} OR repo:home-assistant/architecture {name}"
                         search_url = "https://api.github.com/search/issues"
+                        likelihood = LIKELIHOOD_LOW
+                        
                         async with session.get(
                             search_url,
                             params={"q": search_query, "per_page": 5},
@@ -490,14 +532,13 @@ async def fetch_hacs_features(session: aiohttp.ClientSession) -> List[Dict[str, 
                                 # If there's discussion about it, it's more likely to be incorporated
                                 if discussion_count > 0:
                                     likelihood = LIKELIHOOD_MEDIUM
-                                else:
-                                    likelihood = LIKELIHOOD_LOW
-                            else:
-                                likelihood = LIKELIHOOD_LOW
+                        
+                        # Determine status label
+                        status = "New" if is_new else "Updated"
                         
                         # Add to features
                         features.append({
-                            "title": f"{name} integration{(' - ' + description[:50]) if description else ''}",
+                            "title": f"{name} integration ({status}){release_info}{(' - ' + description[:40]) if description else ''}",
                             "importance": importance,
                             "likelihood": likelihood,
                             "source": "hacs",
@@ -505,7 +546,7 @@ async def fetch_hacs_features(session: aiohttp.ClientSession) -> List[Dict[str, 
                         })
                         
                         # Limit to prevent rate limiting
-                        await asyncio.sleep(0.1)
+                        await asyncio.sleep(0.15)
                         
                 except Exception as err:
                     _LOGGER.debug(f"Error processing HACS integration: {err}")
@@ -513,7 +554,7 @@ async def fetch_hacs_features(session: aiohttp.ClientSession) -> List[Dict[str, 
             
             # Process lovelace cards
             cards = data.get("lovelace", [])
-            for card in cards[:30]:  # Check top 30 cards
+            for card in cards[:50]:  # Check more cards
                 try:
                     repo_name = card.get("repository", "")
                     if not repo_name:
@@ -528,15 +569,33 @@ async def fetch_hacs_features(session: aiohttp.ClientSession) -> List[Dict[str, 
                         repo_data = await repo_resp.json()
                         stars = repo_data.get("stargazers_count", 0)
                         name = repo_data.get("name", "").replace("-", " ").replace("_", " ").title()
+                        created_at = repo_data.get("created_at", "")
+                        pushed_at = repo_data.get("pushed_at", "")
                         
                         # Skip if too few stars
-                        if stars < 200:
+                        if stars < 100:
+                            continue
+                        
+                        # Check if it's new or recently updated
+                        is_new = False
+                        is_updated = False
+                        
+                        if created_at:
+                            created_date = datetime.fromisoformat(created_at.replace("Z", "+00:00"))
+                            is_new = created_date > three_months_ago
+                        
+                        if pushed_at:
+                            push_date = datetime.fromisoformat(pushed_at.replace("Z", "+00:00"))
+                            is_updated = push_date > three_months_ago
+                        
+                        # Only include if new or recently updated
+                        if not (is_new or is_updated):
                             continue
                         
                         # Cards need more stars to be considered
-                        if stars > 1500:
+                        if stars > 1000:
                             importance = IMPORTANCE_MEDIUM
-                        elif stars > 800:
+                        elif stars > 500:
                             importance = IMPORTANCE_LOW
                         else:
                             continue
@@ -544,15 +603,17 @@ async def fetch_hacs_features(session: aiohttp.ClientSession) -> List[Dict[str, 
                         # Cards are less likely to be incorporated
                         likelihood = LIKELIHOOD_LOW
                         
+                        status = "New" if is_new else "Updated"
+                        
                         features.append({
-                            "title": f"{name} card",
+                            "title": f"{name} card ({status})",
                             "importance": importance,
                             "likelihood": likelihood,
                             "source": "hacs",
                             "url": repo_data.get("html_url", "")
                         })
                         
-                        await asyncio.sleep(0.1)
+                        await asyncio.sleep(0.15)
                         
                 except Exception as err:
                     _LOGGER.debug(f"Error processing HACS card: {err}")
@@ -696,7 +757,7 @@ async def async_fetch_haos_features(hass: HomeAssistant):
                 stats_html +
                 _render("Upcoming", upcoming, upcoming_ver) + 
                 _render("Next", nxt, next_ver) +
-                _render("Popular HACS Features", top_hacs))
+                _render("New & Updated HACS Features", top_hacs))
 
         hass.data.setdefault(DOMAIN, {})["rendered_html"] = html
         hass.states.async_set("sensor.haos_feature_forecast_native","ok",{"rendered_html": html})

@@ -19,10 +19,10 @@ This integration automatically fetches real Home Assistant Core and OS release d
 
 ## ✨ What's New in v1.4.0
 
-- **HACS Integration Tracking**: Now tracks popular HACS integrations and cards that might be incorporated into Home Assistant
+- **HACS Integration Tracking**: Now tracks popular NEW or recently UPGRADED HACS integrations and cards (within last 3 months)
 - **Improved Forum Filtering**: Forum feature requests are correctly marked as speculative unless actively being worked on
 - **GitHub HACS Discussions**: Monitors discussions about HACS features to identify potential upcoming incorporations
-- **Dedicated HACS Section**: Shows 5-10 top HACS features in a separate section
+- **Dedicated HACS Section**: Shows 5-10 new/updated HACS features in a separate section with release info
 - **Multiple Data Sources**: Fetches actual planned features from GitHub (issues, PRs, discussions), Home Assistant blog, community forums, and HACS
 - **Smart Filtering**: Automatically filters out generic maintenance items
 - **Importance & Likelihood Ratings**: Each feature is rated and sorted by importance and likelihood
@@ -41,12 +41,12 @@ This integration automatically fetches real Home Assistant Core and OS release d
   - GitHub architecture discussions
   - Home Assistant blog posts
   - Community forum feature requests (marked as speculative)
-  - Popular HACS integrations and Lovelace cards
+  - Popular NEW or recently UPGRADED HACS integrations and Lovelace cards (last 3 months)
   - GitHub discussions about HACS features being incorporated
 - Rates features by importance (Critical/High/Medium/Low/Minimal) and likelihood (Certain/Very Likely/Likely/Possible/Speculative)
 - Sorts features by importance × likelihood
 - Intelligently deduplicates similar features from different sources
-- Shows popular HACS features in a dedicated section (5-10 features)
+- Shows new/updated HACS features in a dedicated section (5-10 features)
 - Correctly determines upcoming and next releases (upcoming = current + 1 month, next = current + 2 months)
 - Automatic updates every 6 hours
 - Manual update via service call
@@ -110,12 +110,14 @@ The integration:
   - GitHub architecture discussions
   - Home Assistant blog (RSS feed and web scraping)
   - Community forum (feature requests category via JSON API, marked as speculative)
-  - HACS default repositories (popular integrations with 100+ stars, cards with 200+ stars)
+  - HACS default repositories (NEW or UPGRADED within 3 months: integrations with 50+ stars, cards with 100+ stars)
   - GitHub discussions about HACS features (hints for potential incorporation)
-- Calculates importance based on reactions, comments, views, stars, and labels
+- Tracks recent releases and updates for HACS integrations to show only active development
+- Calculates importance based on reactions, comments, views, stars, recency, and labels
 - Calculates likelihood based on PR state, milestones, source credibility, activity, and GitHub discussions
 - Forum features are marked as speculative since they usually end up in HACS before implementation
-- HACS features are tracked separately and shown in their own section
+- HACS features are filtered to show only recent activity (new repos or updates within 3 months)
+- HACS features are tracked separately and shown in their own "New & Updated HACS Features" section
 - Deduplicates similar features from different sources, keeping highest-scored version
 - Parses current HA version (ignoring patch) to correctly determine upcoming releases
 - Stores release data in Home Assistant's data store
