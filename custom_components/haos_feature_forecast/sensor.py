@@ -18,9 +18,9 @@ async def async_setup_entry(hass, entry, async_add_entities: AddEntitiesCallback
 class HaosFeatureForecastSensor(CoordinatorEntity, SensorEntity):
     """HAOS Feature Forecast sensor using CoordinatorEntity pattern."""
     
-    _attr_has_entity_name = True
+    _attr_has_entity_name = False
     _attr_name = "HAOS Feature Forecast"
-    _attr_unique_id = "haos_feature_forecast_native"
+    _attr_unique_id = "haos_feature_forecast"
     _attr_icon = "mdi:home-assistant"
 
     def __init__(self, coordinator: HaosFeatureForecastCoordinator) -> None:

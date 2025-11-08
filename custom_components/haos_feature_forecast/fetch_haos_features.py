@@ -459,7 +459,7 @@ async def fetch_hacs_features(session: aiohttp.ClientSession, headers: Optional[
             
             # Get current time for recency checks
             now = datetime.now(timezone.utc)
-            three_months_ago = now - timedelta(days=30)
+            three_months_ago = now - timedelta(days=90)
             
             # Process integrations
             integrations = data.get("integrations", [])
