@@ -20,9 +20,15 @@ class HaosFeatureForecastSensor(SensorEntity):
 
     def __init__(self, coordinator: HaosFeatureForecastCoordinator) -> None:
         self.coordinator = coordinator
-        # Initialize with default state
+        # Initialize with helpful default state
         self._attr_native_value = "Initializing"
-        self._attr_extra_state_attributes = {}
+        self._attr_extra_state_attributes = {
+            "rendered_html": (
+                "<p><b>⏳ Waiting for initial data...</b></p>"
+                "<p>If this persists, check logs or see the Troubleshooting Guide.</p>"
+            ),
+            "feature_count": 0
+        }
 
     async def async_update(self) -> None:
         await self.coordinator.async_request_refresh()
