@@ -37,6 +37,15 @@ To avoid GitHub API rate limiting (60 requests/hour without token vs 5000 reques
 
 ---
 
+## 🔧 Troubleshooting
+
+If you're experiencing issues like an empty card or no data showing:
+- See the **[Troubleshooting Guide](TROUBLESHOOTING.md)** for diagnostic commands and solutions
+- Most common issue: GitHub API rate limiting - add a token to fix this
+- The guide includes terminal commands for Home Assistant OS Advanced SSH
+
+---
+
 ## ✨ What's New in v1.4.0
 
 - **HACS Integration Tracking**: Now tracks popular NEW or recently UPGRADED HACS integrations and cards (within last 3 months)

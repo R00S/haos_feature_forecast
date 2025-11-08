@@ -642,6 +642,7 @@ async def fetch_hacs_features(session: aiohttp.ClientSession, headers: Optional[
 
 async def async_fetch_haos_features(hass: HomeAssistant):
     """Forecast with live data from multiple sources."""
+    _LOGGER.info("Starting forecast data fetch from multiple sources...")
     try:
         # Get current HA version and parse it (ignoring patch version)
         current_year, current_month = parse_ha_version(HA_VERSION)
@@ -779,7 +780,10 @@ async def async_fetch_haos_features(hass: HomeAssistant):
         
         # If we don't have enough real features, show warning
         if len(upcoming) < 3:
-            _LOGGER.warning("Not enough real features found, showing limited data")
+            _LOGGER.warning("Not enough real features found, showing limited data. This may result in an empty or minimal card display.")
+        
+        # Log total feature count for diagnostics
+        _LOGGER.info(f"Processing {len(unique_features)} unique features and {len(top_hacs)} HACS features for display")
         
         cet = timezone(timedelta(hours=1))
         ts = datetime.now(cet).strftime("%b %d %H:%M")
@@ -824,6 +828,14 @@ async def async_fetch_haos_features(hass: HomeAssistant):
         # Also cache the last successful HTML render
         hass.data[DOMAIN]["last_successful_html"] = html
         hass.data[DOMAIN]["last_successful_count"] = len(unique_features)
+        
+        # Log HTML length for diagnostics
+        _LOGGER.info(f"Generated forecast HTML ({len(html)} characters) with {len(unique_features)} features and {len(top_hacs)} HACS features")
+        
+        # Warn if HTML is suspiciously short (likely empty/error)
+        if len(html) < 200:
+            _LOGGER.warning(f"Generated HTML is very short ({len(html)} chars) - card may appear empty. Check if data sources are accessible.")
+        
         # Note: We no longer set state directly here, the coordinator/sensor handles it
         _LOGGER.info(f"Forecast updated v1.4.0 with {len(unique_features)} real features from multiple sources and {len(top_hacs)} HACS features")
 
