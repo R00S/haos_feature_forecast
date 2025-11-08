@@ -104,11 +104,20 @@ content: >
 
 **Note the sensor entity ID:** `sensor.haos_feature_forecast`
 
+**If you have duplicate sensors** (like `sensor.haos_feature_forecast_2` or `_3`), the integration will automatically remove them on the next restart. This can happen when upgrading from older versions.
+
 To verify in terminal:
 
 ```bash
 ha core api --method GET /api/states | grep -A 10 haos_feature_forecast
 ```
+
+If you see multiple entities listed, restart Home Assistant or reload the integration:
+```bash
+ha core restart
+```
+
+After restart, only `sensor.haos_feature_forecast` should remain.
 
 ### 8. Check for Cached Data
 
@@ -178,6 +187,38 @@ ha core logs | grep -i "haos_feature_forecast"
 1. Add GitHub Personal Access Token (see README)
 2. Token needs NO special permissions
 3. Configure via Settings → Devices & Services → HAOS Feature Forecast → Configure
+
+### Issue: "HACS section is empty or showing 'No confirmed features yet'"
+
+**Cause:** HACS features are filtered by strict criteria - they must have 50+ stars (integrations) or 500+ stars (cards) AND have been updated within the last 3 months
+
+**Solution:**
+1. This is normal behavior - the integration only shows popular and actively maintained HACS projects
+2. Check logs for HACS filtering statistics:
+   ```bash
+   ha core logs | grep -i "HACS"
+   ```
+3. Look for messages like "HACS integrations: checked X, filtered Y, added Z"
+4. Without a GitHub token, HACS fetching may be limited by rate limiting
+5. Add a GitHub token to ensure full HACS data is fetched
+6. The integration only processes the first 10 integrations and 5 cards from HACS to conserve API quota
+
+### Issue: "Multiple sensor entities (sensor.haos_feature_forecast_2, _3, etc.)"
+
+**Cause:** Older versions created duplicate entities during upgrades
+
+**Solution:**
+1. The integration now automatically cleans up duplicates on startup
+2. Restart Home Assistant or reload the integration:
+   ```bash
+   ha core restart
+   ```
+3. Check logs to confirm cleanup:
+   ```bash
+   ha core logs | grep -i "duplicate\|cleanup"
+   ```
+4. After cleanup, only `sensor.haos_feature_forecast` should exist
+5. Update your Lovelace cards to use `sensor.haos_feature_forecast` if needed
 
 ### Issue: "Authentication failed (401)"
 

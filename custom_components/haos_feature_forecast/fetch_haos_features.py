@@ -852,7 +852,7 @@ async def async_fetch_haos_features(hass: HomeAssistant):
             _LOGGER.warning(f"Generated HTML is very short ({len(html)} chars) - card may appear empty. Check if data sources are accessible.")
         
         # Note: We no longer set state directly here, the coordinator/sensor handles it
-        _LOGGER.info(f"Forecast updated v1.4.0 with {len(unique_features)} real features from multiple sources and {len(top_hacs)} HACS features")
+        _LOGGER.info(f"Forecast updated v1.4.3 with {len(unique_features)} real features from multiple sources and {len(top_hacs)} HACS features")
 
     except Exception as e:
         _LOGGER.exception("async_fetch_haos_features failed: %s", e)

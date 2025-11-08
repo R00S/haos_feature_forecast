@@ -130,4 +130,4 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         hass.data[DOMAIN].pop("coordinator", None)
     return unload_ok
 
-__version__ = '1.4.2'
+__version__ = '1.4.3'
