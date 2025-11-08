@@ -17,8 +17,24 @@ class HaosFeatureForecastSensor(SensorEntity):
 
     def __init__(self, coordinator: HaosFeatureForecastCoordinator) -> None:
         self.coordinator = coordinator
-        self._attr_native_value = coordinator.data
+        # Initialize with default state
+        self._attr_native_value = "Initializing"
+        self._attr_extra_state_attributes = {}
 
     async def async_update(self) -> None:
         await self.coordinator.async_request_refresh()
-        self._attr_native_value = self.coordinator.data
+        
+        # coordinator.data is now a dict with state and attributes
+        if isinstance(self.coordinator.data, dict):
+            self._attr_native_value = self.coordinator.data.get("state", "Unknown")
+            self._attr_extra_state_attributes = {
+                "rendered_html": self.coordinator.data.get("rendered_html", ""),
+                "feature_count": self.coordinator.data.get("feature_count", 0)
+            }
+        else:
+            # Fallback for old data format (should not happen after update)
+            self._attr_native_value = "Ready"
+            self._attr_extra_state_attributes = {
+                "rendered_html": str(self.coordinator.data),
+                "feature_count": 0
+            }

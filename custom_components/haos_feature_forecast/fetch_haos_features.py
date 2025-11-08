@@ -443,7 +443,7 @@ async def fetch_hacs_features(session: aiohttp.ClientSession) -> List[Dict[str, 
             
             # Get current time for recency checks
             now = datetime.now(timezone.utc)
-            three_months_ago = now - timedelta(days=90)
+            three_months_ago = now - timedelta(days=30)
             
             # Process integrations
             integrations = data.get("integrations", [])
@@ -635,6 +635,12 @@ async def async_fetch_haos_features(hass: HomeAssistant):
         upcoming_year, upcoming_month = get_next_version(current_year, current_month)
         next_year, next_month = get_next_version(upcoming_year, upcoming_month)
         
+        # Initialize domain data if not present
+        hass.data.setdefault(DOMAIN, {})
+        
+        # Get cached data as fallback
+        cached_data = hass.data[DOMAIN].get("cached_features", {})
+        
         # Fetch data from multiple sources in parallel
         async with aiohttp.ClientSession() as session:
             results = await asyncio.gather(
@@ -648,15 +654,39 @@ async def async_fetch_haos_features(hass: HomeAssistant):
                 return_exceptions=True  # Don't fail if one source fails
             )
             
-            core_releases = results[0] if not isinstance(results[0], Exception) else []
-            os_releases = results[1] if not isinstance(results[1], Exception) else []
-            github_features = results[2] if not isinstance(results[2], Exception) else []
-            blog_features = results[3] if not isinstance(results[3], Exception) else []
-            discussion_features = results[4] if not isinstance(results[4], Exception) else []
-            forum_features = results[5] if not isinstance(results[5], Exception) else []
-            hacs_features = results[6] if not isinstance(results[6], Exception) else []
+            # Use cached data as fallback if fetch fails or returns empty
+            core_releases = results[0] if not isinstance(results[0], Exception) and results[0] else cached_data.get("core_releases", [])
+            os_releases = results[1] if not isinstance(results[1], Exception) and results[1] else cached_data.get("os_releases", [])
+            github_features = results[2] if not isinstance(results[2], Exception) and results[2] else cached_data.get("github_features", [])
+            blog_features = results[3] if not isinstance(results[3], Exception) and results[3] else cached_data.get("blog_features", [])
+            discussion_features = results[4] if not isinstance(results[4], Exception) and results[4] else cached_data.get("discussion_features", [])
+            forum_features = results[5] if not isinstance(results[5], Exception) and results[5] else cached_data.get("forum_features", [])
+            hacs_features = results[6] if not isinstance(results[6], Exception) and results[6] else cached_data.get("hacs_features", [])
         
-        # Combine all features from different sources (excluding HACS for now)
+        # Log which sources failed and are using cache
+        if isinstance(results[2], Exception) or not results[2]:
+            _LOGGER.warning(f"GitHub features fetch failed, using cached data ({len(github_features)} features)")
+        if isinstance(results[3], Exception) or not results[3]:
+            _LOGGER.warning(f"Blog features fetch failed, using cached data ({len(blog_features)} features)")
+        if isinstance(results[4], Exception) or not results[4]:
+            _LOGGER.warning(f"Discussion features fetch failed, using cached data ({len(discussion_features)} features)")
+        if isinstance(results[5], Exception) or not results[5]:
+            _LOGGER.warning(f"Forum features fetch failed, using cached data ({len(forum_features)} features)")
+        if isinstance(results[6], Exception) or not results[6]:
+            _LOGGER.warning(f"HACS features fetch failed, using cached data ({len(hacs_features)} features)")
+        
+        # Cache successful fetches for future fallback
+        hass.data[DOMAIN]["cached_features"] = {
+            "core_releases": core_releases if core_releases else cached_data.get("core_releases", []),
+            "os_releases": os_releases if os_releases else cached_data.get("os_releases", []),
+            "github_features": github_features if github_features else cached_data.get("github_features", []),
+            "blog_features": blog_features if blog_features else cached_data.get("blog_features", []),
+            "discussion_features": discussion_features if discussion_features else cached_data.get("discussion_features", []),
+            "forum_features": forum_features if forum_features else cached_data.get("forum_features", []),
+            "hacs_features": hacs_features if hacs_features else cached_data.get("hacs_features", []),
+        }
+        
+        # Combine all features from different sources (HACS is kept separate for its own section)
         all_features = github_features + blog_features + discussion_features + forum_features
         
         _LOGGER.info(f"Fetched features: {len(github_features)} from GitHub, "
@@ -760,8 +790,24 @@ async def async_fetch_haos_features(hass: HomeAssistant):
                 _render("New & Updated HACS Features", top_hacs))
 
         hass.data.setdefault(DOMAIN, {})["rendered_html"] = html
-        hass.states.async_set("sensor.haos_feature_forecast_native","ok",{"rendered_html": html})
+        hass.data[DOMAIN]["feature_count"] = len(unique_features)
+        # Also cache the last successful HTML render
+        hass.data[DOMAIN]["last_successful_html"] = html
+        hass.data[DOMAIN]["last_successful_count"] = len(unique_features)
+        # Note: We no longer set state directly here, the coordinator/sensor handles it
         _LOGGER.info(f"Forecast updated v1.4.0 with {len(unique_features)} real features from multiple sources and {len(top_hacs)} HACS features")
 
     except Exception as e:
         _LOGGER.exception("async_fetch_haos_features failed: %s", e)
+        # On complete failure, try to use last successful HTML if available
+        hass.data.setdefault(DOMAIN, {})
+        last_html = hass.data[DOMAIN].get("last_successful_html")
+        last_count = hass.data[DOMAIN].get("last_successful_count", 0)
+        if last_html:
+            _LOGGER.warning("Using last successful cached HTML due to fetch failure")
+            hass.data[DOMAIN]["rendered_html"] = last_html
+            hass.data[DOMAIN]["feature_count"] = last_count
+        else:
+            _LOGGER.error("No cached data available, forecast unavailable")
+            hass.data[DOMAIN]["rendered_html"] = "Error: No data available"
+            hass.data[DOMAIN]["feature_count"] = 0
