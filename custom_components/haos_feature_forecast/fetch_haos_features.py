@@ -97,10 +97,10 @@ def normalize_title(title: str) -> str:
     words = [w for w in title.split() if w not in stop_words and len(w) > 2]
     return ' '.join(sorted(words))  # Sort to handle word order
 
-async def fetch_github_data(session: aiohttp.ClientSession, url: str, params: Optional[Dict] = None) -> List[Dict[str, Any]]:
+async def fetch_github_data(session: aiohttp.ClientSession, url: str, params: Optional[Dict] = None, headers: Optional[Dict] = None) -> List[Dict[str, Any]]:
     """Fetch data from GitHub API."""
     try:
-        async with session.get(url, params=params, timeout=aiohttp.ClientTimeout(total=30)) as resp:
+        async with session.get(url, params=params, headers=headers, timeout=aiohttp.ClientTimeout(total=30)) as resp:
             if resp.status == 200:
                 return await resp.json()
             else:
@@ -138,7 +138,7 @@ def predict_next_release(releases: List[Dict[str, Any]]) -> datetime:
         _LOGGER.warning(f"Error predicting next release: {err}")
         return datetime.now(timezone.utc) + timedelta(days=30)
 
-async def fetch_real_features(session: aiohttp.ClientSession) -> List[Dict[str, Any]]:
+async def fetch_real_features(session: aiohttp.ClientSession, headers: Optional[Dict] = None) -> List[Dict[str, Any]]:
     """Fetch real planned features from GitHub."""
     features = []
     
@@ -148,7 +148,8 @@ async def fetch_real_features(session: aiohttp.ClientSession) -> List[Dict[str, 
         issues = await fetch_github_data(
             session, 
             HA_ISSUES,
-            params={"state": "open", "labels": "new-feature", "per_page": 30, "sort": "reactions-+1"}
+            params={"state": "open", "labels": "new-feature", "per_page": 30, "sort": "reactions-+1"},
+            headers=headers
         )
         
         for issue in issues[:15]:  # Limit processing
@@ -206,7 +207,8 @@ async def fetch_real_features(session: aiohttp.ClientSession) -> List[Dict[str, 
         prs = await fetch_github_data(
             session,
             "https://api.github.com/repos/home-assistant/core/pulls",
-            params={"state": "open", "per_page": 30, "sort": "updated"}
+            params={"state": "open", "per_page": 30, "sort": "updated"},
+            headers=headers
         )
         
         for pr in prs[:15]:
@@ -299,7 +301,7 @@ async def fetch_blog_features(session: aiohttp.ClientSession) -> List[Dict[str, 
     
     return features
 
-async def fetch_discussion_features(session: aiohttp.ClientSession) -> List[Dict[str, Any]]:
+async def fetch_discussion_features(session: aiohttp.ClientSession, headers: Optional[Dict] = None) -> List[Dict[str, Any]]:
     """Fetch features from Home Assistant architecture discussions."""
     features = []
     
@@ -308,7 +310,8 @@ async def fetch_discussion_features(session: aiohttp.ClientSession) -> List[Dict
         discussions = await fetch_github_data(
             session,
             HA_DISCUSSIONS,
-            params={"state": "open", "per_page": 20}
+            params={"state": "open", "per_page": 20},
+            headers=headers
         )
         
         for disc in discussions[:10]:
@@ -428,7 +431,7 @@ async def fetch_forum_features(session: aiohttp.ClientSession) -> List[Dict[str,
     
     return features
 
-async def fetch_hacs_features(session: aiohttp.ClientSession) -> List[Dict[str, Any]]:
+async def fetch_hacs_features(session: aiohttp.ClientSession, headers: Optional[Dict] = None) -> List[Dict[str, Any]]:
     """Fetch popular NEW or recently UPGRADED HACS integrations and cards."""
     features = []
     
@@ -455,7 +458,7 @@ async def fetch_hacs_features(session: aiohttp.ClientSession) -> List[Dict[str, 
                     
                     # Fetch repository details from GitHub to get stars and other metrics
                     repo_url = f"https://api.github.com/repos/{repo_name}"
-                    async with session.get(repo_url, timeout=aiohttp.ClientTimeout(total=10)) as repo_resp:
+                    async with session.get(repo_url, headers=headers, timeout=aiohttp.ClientTimeout(total=10)) as repo_resp:
                         if repo_resp.status != 200:
                             continue
                         
@@ -562,7 +565,7 @@ async def fetch_hacs_features(session: aiohttp.ClientSession) -> List[Dict[str, 
                     
                     # Fetch repository details
                     repo_url = f"https://api.github.com/repos/{repo_name}"
-                    async with session.get(repo_url, timeout=aiohttp.ClientTimeout(total=10)) as repo_resp:
+                    async with session.get(repo_url, headers=headers, timeout=aiohttp.ClientTimeout(total=10)) as repo_resp:
                         if repo_resp.status != 200:
                             continue
                         
@@ -641,16 +644,30 @@ async def async_fetch_haos_features(hass: HomeAssistant):
         # Get cached data as fallback
         cached_data = hass.data[DOMAIN].get("cached_features", {})
         
+        # Get GitHub token from config entry if available
+        github_token = None
+        config_entry = hass.data[DOMAIN].get("config_entry")
+        if config_entry:
+            github_token = config_entry.data.get("github_token", "").strip()
+        
+        # Prepare headers for GitHub API requests
+        headers = {}
+        if github_token:
+            headers["Authorization"] = f"token {github_token}"
+            _LOGGER.debug("Using GitHub token for API requests")
+        else:
+            _LOGGER.warning("No GitHub token configured - API rate limits will be restrictive (60 requests/hour). Add a token in integration options to increase limit to 5000 requests/hour.")
+        
         # Fetch data from multiple sources in parallel
         async with aiohttp.ClientSession() as session:
             results = await asyncio.gather(
-                fetch_github_data(session, HA_RELEASES),
-                fetch_github_data(session, HA_OS_RELEASES),
-                fetch_real_features(session),
+                fetch_github_data(session, HA_RELEASES, headers=headers),
+                fetch_github_data(session, HA_OS_RELEASES, headers=headers),
+                fetch_real_features(session, headers=headers),
                 fetch_blog_features(session),
-                fetch_discussion_features(session),
+                fetch_discussion_features(session, headers=headers),
                 fetch_forum_features(session),
-                fetch_hacs_features(session),
+                fetch_hacs_features(session, headers=headers),
                 return_exceptions=True  # Don't fail if one source fails
             )
             

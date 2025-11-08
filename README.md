@@ -14,6 +14,26 @@ This integration automatically fetches real Home Assistant Core and OS release d
 3. Install **HAOS Feature Forecast**.
 4. Restart Home Assistant.
 5. Go to **Settings → Devices & Services → Add Integration** and search for "HAOS Feature Forecast"
+6. **(Optional but Recommended)** Add a GitHub Personal Access Token during setup or later via Integration Options to avoid API rate limiting.
+
+---
+
+## 🔑 GitHub Token Setup (Recommended)
+
+To avoid GitHub API rate limiting (60 requests/hour without token vs 5000 requests/hour with token), it's highly recommended to configure a GitHub Personal Access Token:
+
+### Creating a GitHub Token:
+1. Go to GitHub → **Settings** → **Developer settings** → **Personal access tokens** → **Tokens (classic)**
+2. Click **Generate new token** → **Generate new token (classic)**
+3. Give it a descriptive name like "Home Assistant HAOS Forecast"
+4. **No special scopes/permissions needed** - just leave all checkboxes unchecked (the token only needs to access public data)
+5. Click **Generate token** and copy it
+
+### Adding Token to Integration:
+- **During initial setup**: Paste the token in the "GitHub Token" field
+- **After setup**: Go to **Settings** → **Devices & Services** → **HAOS Feature Forecast** → **Configure** and add/update the token
+
+**Note**: The token is stored securely in Home Assistant and only used to authenticate API requests to GitHub for fetching public repository data.
 
 ---
 

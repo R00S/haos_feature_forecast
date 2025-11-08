@@ -30,6 +30,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up HAOS Feature Forecast from a config entry."""
     hass.data.setdefault(DOMAIN, {})
     
+    # Store the config entry for access to GitHub token
+    hass.data[DOMAIN]["config_entry"] = entry
+    
     # Create and store the coordinator
     coordinator = HaosFeatureForecastCoordinator(hass)
     await coordinator.async_config_entry_first_refresh()
