@@ -33,6 +33,11 @@ class HaosFeatureForecastCoordinator(DataUpdateCoordinator):
             "</ul>"
         )
         self.data = {"state": "Initializing", "rendered_html": initial_html, "feature_count": 0}
+        _LOGGER.info(
+            "HAOS Feature Forecast coordinator initialized. "
+            "Initial data will be fetched shortly. "
+            "Check the sensor or card for initialization status."
+        )
 
     async def _async_update_data(self):
         """Fetch data from the integration."""

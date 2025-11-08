@@ -2,6 +2,7 @@
 from __future__ import annotations
 import logging
 from homeassistant.components.sensor import SensorEntity
+from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from .const import DOMAIN
 from .coordinator import HaosFeatureForecastCoordinator
@@ -10,30 +11,33 @@ _LOGGER = logging.getLogger(__name__)
 
 async def async_setup_entry(hass, entry, async_add_entities: AddEntitiesCallback):
     coordinator = hass.data[DOMAIN]["coordinator"]
-    async_add_entities([HaosFeatureForecastSensor(coordinator)], True)
+    sensor = HaosFeatureForecastSensor(coordinator)
+    async_add_entities([sensor], True)
+    _LOGGER.info("HAOS Feature Forecast sensor created and added to Home Assistant")
 
-class HaosFeatureForecastSensor(SensorEntity):
+class HaosFeatureForecastSensor(CoordinatorEntity, SensorEntity):
+    """HAOS Feature Forecast sensor using CoordinatorEntity pattern."""
+    
     _attr_has_entity_name = True
     _attr_name = "HAOS Feature Forecast"
     _attr_unique_id = "haos_feature_forecast_native"
     _attr_icon = "mdi:home-assistant"
 
     def __init__(self, coordinator: HaosFeatureForecastCoordinator) -> None:
-        self.coordinator = coordinator
-        # Initialize with helpful default state
-        self._attr_native_value = "Initializing"
-        self._attr_extra_state_attributes = {
-            "rendered_html": (
-                "<p><b>⏳ Waiting for initial data...</b></p>"
-                "<p>If this persists, check logs or see the Troubleshooting Guide.</p>"
-            ),
-            "feature_count": 0
-        }
-
-    async def async_update(self) -> None:
-        await self.coordinator.async_request_refresh()
+        """Initialize the sensor."""
+        super().__init__(coordinator)
+        _LOGGER.info("HAOS Feature Forecast sensor initializing...")
         
-        # coordinator.data is now a dict with state and attributes
+        # Set initial state from coordinator's initial data
+        self._update_from_coordinator()
+        
+        _LOGGER.info(
+            f"HAOS Feature Forecast sensor initialized with state: {self._attr_native_value}"
+        )
+
+    def _update_from_coordinator(self) -> None:
+        """Update sensor state from coordinator data."""
+        # coordinator.data is a dict with state and attributes
         if isinstance(self.coordinator.data, dict):
             self._attr_native_value = self.coordinator.data.get("state", "Unknown")
             rendered_html = self.coordinator.data.get("rendered_html", "")
@@ -52,12 +56,33 @@ class HaosFeatureForecastSensor(SensorEntity):
                     f"Features: {feature_count}. Check logs for rate limiting or fetch errors."
                 )
             else:
-                _LOGGER.debug(f"Sensor updated: state={self._attr_native_value}, HTML length={len(rendered_html)}, features={feature_count}")
+                _LOGGER.info(
+                    f"Sensor updated successfully: state={self._attr_native_value}, "
+                    f"HTML length={len(rendered_html)}, features={feature_count}"
+                )
         else:
-            # Fallback for old data format (should not happen after update)
-            self._attr_native_value = "Ready"
+            # Fallback for unexpected data format
+            self._attr_native_value = "Error"
             self._attr_extra_state_attributes = {
-                "rendered_html": str(self.coordinator.data),
+                "rendered_html": (
+                    "<p><b>❌ Unexpected data format</b></p>"
+                    "<p>The sensor received data in an unexpected format. "
+                    "Please check logs and report this issue.</p>"
+                ),
                 "feature_count": 0
             }
-            _LOGGER.warning("Sensor received unexpected data format from coordinator")
+            _LOGGER.error(
+                f"Sensor received unexpected data format from coordinator: {type(self.coordinator.data)}"
+            )
+
+    @property
+    def available(self) -> bool:
+        """Return if entity is available."""
+        # Always return True so initialization messages are visible
+        return True
+
+    def _handle_coordinator_update(self) -> None:
+        """Handle updated data from the coordinator."""
+        _LOGGER.debug("Sensor received coordinator update")
+        self._update_from_coordinator()
+        self.async_write_ha_state()
