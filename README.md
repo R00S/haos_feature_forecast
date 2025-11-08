@@ -50,8 +50,8 @@ If you're experiencing issues like an empty card or no data showing:
 
 - **HACS Integration Tracking**: Now tracks popular NEW or recently UPGRADED HACS integrations and cards (within last 3 months)
 - **Improved Forum Filtering**: Forum feature requests are correctly marked as speculative unless actively being worked on
-- **GitHub HACS Discussions**: Monitors discussions about HACS features to identify potential upcoming incorporations
-- **Dedicated HACS Section**: Shows 5-10 new/updated HACS features in a separate section with release info
+- **Dedicated HACS Section**: Shows 3-5 new/updated HACS features in a separate section
+- **API Quota Optimization**: Reduced HACS API calls from 300+ to ~15-20 to prevent rate limiting without token
 - **Multiple Data Sources**: Fetches actual planned features from GitHub (issues, PRs, discussions), Home Assistant blog, community forums, and HACS
 - **Smart Filtering**: Automatically filters out generic maintenance items
 - **Importance & Likelihood Ratings**: Each feature is rated and sorted by importance and likelihood
@@ -70,12 +70,12 @@ If you're experiencing issues like an empty card or no data showing:
   - GitHub architecture discussions
   - Home Assistant blog posts
   - Community forum feature requests (marked as speculative)
-  - Popular NEW or recently UPGRADED HACS integrations and Lovelace cards (last 3 months)
-  - GitHub discussions about HACS features being incorporated
+  - Popular NEW or recently UPGRADED HACS integrations and Lovelace cards (last 3 months, limited to conserve API quota)
 - Rates features by importance (Critical/High/Medium/Low/Minimal) and likelihood (Certain/Very Likely/Likely/Possible/Speculative)
 - Sorts features by importance × likelihood
 - Intelligently deduplicates similar features from different sources
-- Shows new/updated HACS features in a dedicated section (5-10 features)
+- Shows new/updated HACS features in a dedicated section (3-5 features)
+- Optimized API usage to work reliably without GitHub token (but token still recommended)
 - Correctly determines upcoming and next releases (upcoming = current + 1 month, next = current + 2 months)
 - Automatic updates every 6 hours
 - Manual update via service call
@@ -139,11 +139,11 @@ The integration:
   - GitHub architecture discussions
   - Home Assistant blog (RSS feed and web scraping)
   - Community forum (feature requests category via JSON API, marked as speculative)
-  - HACS default repositories (NEW or UPGRADED within 3 months: integrations with 50+ stars, cards with 100+ stars)
-  - GitHub discussions about HACS features (hints for potential incorporation)
+  - HACS default repositories (NEW or UPGRADED within 3 months: limited to 10 integrations + 5 cards to conserve API quota)
+- Optimized to use minimal API calls: works without GitHub token, but token highly recommended for full features
 - Tracks recent releases and updates for HACS integrations to show only active development
 - Calculates importance based on reactions, comments, views, stars, recency, and labels
-- Calculates likelihood based on PR state, milestones, source credibility, activity, and GitHub discussions
+- Calculates likelihood based on PR state, milestones, source credibility, and activity
 - Forum features are marked as speculative since they usually end up in HACS before implementation
 - HACS features are filtered to show only recent activity (new repos or updates within 3 months)
 - HACS features are tracked separately and shown in their own "New & Updated HACS Features" section

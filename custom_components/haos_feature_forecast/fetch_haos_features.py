@@ -463,7 +463,8 @@ async def fetch_hacs_features(session: aiohttp.ClientSession, headers: Optional[
             
             # Process integrations
             integrations = data.get("integrations", [])
-            for integration in integrations[:100]:  # Check more to find recent ones
+            # Drastically limit iterations to avoid rate limiting - process only 10 integrations
+            for integration in integrations[:10]:
                 try:
                     repo_name = integration.get("repository", "")
                     if not repo_name:
@@ -503,21 +504,10 @@ async def fetch_hacs_features(session: aiohttp.ClientSession, headers: Optional[
                         if not (is_new or is_updated):
                             continue
                         
-                        # Fetch latest release to check for recent version updates
-                        releases_url = f"https://api.github.com/repos/{repo_name}/releases/latest"
-                        recent_release = False
+                        # Skip fetching release info to save API quota
+                        # We already know it's recently updated from push_at check
+                        recent_release = is_updated
                         release_info = ""
-                        
-                        async with session.get(releases_url, timeout=aiohttp.ClientTimeout(total=10)) as rel_resp:
-                            if rel_resp.status == 200:
-                                release_data = await rel_resp.json()
-                                release_date_str = release_data.get("published_at", "")
-                                if release_date_str:
-                                    release_date = datetime.fromisoformat(release_date_str.replace("Z", "+00:00"))
-                                    if release_date > three_months_ago:
-                                        recent_release = True
-                                        tag = release_data.get("tag_name", "")
-                                        release_info = f" (latest: {tag})" if tag else ""
                         
                         # Calculate importance based on stars and recency
                         if is_new and stars > 200:
@@ -531,23 +521,9 @@ async def fetch_hacs_features(session: aiohttp.ClientSession, headers: Optional[
                         else:
                             continue
                         
-                        # Check if there are discussions about incorporating it into HA
-                        search_query = f"repo:home-assistant/core {name} OR repo:home-assistant/architecture {name}"
-                        search_url = "https://api.github.com/search/issues"
+                        # HACS features are always low likelihood for HA core incorporation
+                        # Removed expensive search API call that was consuming API quota
                         likelihood = LIKELIHOOD_LOW
-                        
-                        async with session.get(
-                            search_url,
-                            params={"q": search_query, "per_page": 5},
-                            timeout=aiohttp.ClientTimeout(total=10)
-                        ) as search_resp:
-                            if search_resp.status == 200:
-                                search_data = await search_resp.json()
-                                discussion_count = search_data.get("total_count", 0)
-                                
-                                # If there's discussion about it, it's more likely to be incorporated
-                                if discussion_count > 0:
-                                    likelihood = LIKELIHOOD_MEDIUM
                         
                         # Determine status label
                         status = "New" if is_new else "Updated"
@@ -570,7 +546,8 @@ async def fetch_hacs_features(session: aiohttp.ClientSession, headers: Optional[
             
             # Process lovelace cards
             cards = data.get("lovelace", [])
-            for card in cards[:50]:  # Check more cards
+            # Limit to 5 cards to conserve API quota
+            for card in cards[:5]:
                 try:
                     repo_name = card.get("repository", "")
                     if not repo_name:
@@ -770,7 +747,7 @@ async def async_fetch_haos_features(hass: HomeAssistant):
         
         # Process HACS features separately - they deserve their own section
         hacs_features_sorted = sorted(hacs_features, key=_rank_key)
-        top_hacs = hacs_features_sorted[:10]  # Show top 5-10 HACS features
+        top_hacs = hacs_features_sorted[:5]  # Show top 3-5 HACS features (reduced to conserve display space)
         
         # Split features between upcoming and next releases
         # Allocate 60% to upcoming, 40% to next
